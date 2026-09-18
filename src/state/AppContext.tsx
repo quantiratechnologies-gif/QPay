@@ -69,6 +69,7 @@ interface AppContextType {
     note?: string;
     avatarInitials?: string;
   }) => Promise<Transaction>;
+  declineMoneyRequest: (id: string) => void;
 
   // KYC Verification
   isKycVerified: boolean;
@@ -102,7 +103,7 @@ interface AppContextType {
   setIsKycModalOpen: (open: boolean) => void;
 
   terminateSession: (sessionId: string) => void;
-  addMoneyRequest: (req: { name: string; upiId: string; amount: number; note?: string }) => void;
+  addMoneyRequest: (req: { name?: string; requesterName?: string; upiId: string; amount: number; note?: string; date?: string; status?: 'pending' | 'accepted' | 'declined' }) => void;
 
   // MPIN & OTP Security Controls
   userPin: string;
@@ -136,11 +137,14 @@ const INITIAL_SESSIONS: DeviceSession[] = [
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isCompletedOnboarding = typeof window !== 'undefined' && localStorage.getItem('hasCompletedOnboarding') === 'true';
+
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return paramScreen;
+      if (localStorage.getItem('hasCompletedOnboarding') === 'true') return 'HOME';
     }
     return 'SPLASH';
   });
@@ -149,6 +153,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return [{ screen: paramScreen }];
+      if (localStorage.getItem('hasCompletedOnboarding') === 'true') return [{ screen: 'HOME' }];
     }
     return [{ screen: 'SPLASH' }];
   });
@@ -316,10 +321,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const goBack = () => {
+    const onboardingScreens: ScreenId[] = [
+      'SPLASH',
+      'ONBOARDING',
+      'MOBILE_NUMBER',
+      'SMS_OTP',
+      'SET_PIN',
+      'PERMISSIONS',
+      'ONBOARDING_KYC',
+      'ONBOARDING_BANK',
+    ];
+    const isCompleted = typeof window !== 'undefined' && localStorage.getItem('hasCompletedOnboarding') === 'true';
+
     if (screenStack.length > 1) {
       const newStack = [...screenStack];
       newStack.pop();
       const prev = newStack[newStack.length - 1];
+
+      // If user has completed onboarding, do not allow going back to onboarding screens
+      if (isCompleted && onboardingScreens.includes(prev.screen)) {
+        setScreenStack([{ screen: 'HOME' }]);
+        setCurrentScreen('HOME');
+        setScreenParams({});
+        setActiveTabState('home');
+        return;
+      }
+
       setScreenStack(newStack);
       setCurrentScreen(prev.screen);
       setScreenParams(prev.params || {});
@@ -331,7 +358,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       else if (prev.screen === 'HISTORY') setActiveTabState('history');
       else if (prev.screen === 'PROFILE') setActiveTabState('profile');
     } else {
-      navigateTo('HOME');
+      if (currentScreen !== 'HOME') {
+        navigateTo('HOME');
+      }
     }
   };
 
@@ -578,6 +607,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newTxn;
   };
 
+  const declineMoneyRequest = (id: string) => {
+    setMoneyRequests((prev) => prev.filter((r) => r.id !== id));
+  };
+
   const openPinModal = (data: { title: string; amount: number; subTitle: string; onSuccess?: () => void }) => {
     setPendingPaymentData(data);
     setIsPinModalOpen(true);
@@ -646,15 +679,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setDeviceSessions((prev) => prev.filter((s) => s.id !== sessionId));
   };
 
-  const addMoneyRequest = (req: { name: string; upiId: string; amount: number; note?: string }) => {
+  const addMoneyRequest = (req: { name?: string; requesterName?: string; upiId: string; amount: number; note?: string; date?: string; status?: 'pending' | 'accepted' | 'declined' }) => {
     const newReq: MoneyRequest = {
       id: `req-${Date.now()}`,
-      requesterName: req.name,
+      requesterName: req.requesterName || req.name || 'Recipient',
       upiId: req.upiId,
       amount: req.amount,
       note: req.note,
-      date: 'Just now',
-      status: 'pending',
+      date: req.date || 'Just now',
+      status: req.status || 'pending',
     };
     setMoneyRequests((prev) => [newReq, ...prev]);
   };
@@ -690,6 +723,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fetchElectricityBill,
         completePayment,
         receiveMoney,
+        declineMoneyRequest,
+        addMoneyRequest,
         isPinModalOpen,
         openPinModal,
         closePinModal,
@@ -712,7 +747,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsKycVerified,
         kycData,
         terminateSession,
-        addMoneyRequest,
         userPin,
         setUserPin,
         verifyUserPin,

@@ -8,8 +8,13 @@ export const SplashScreen: React.FC = () => {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      navigateTo('ONBOARDING');
-    }, 2000);
+      const isCompleted = typeof window !== 'undefined' && localStorage.getItem('hasCompletedOnboarding') === 'true';
+      if (isCompleted) {
+        navigateTo('HOME');
+      } else {
+        navigateTo('ONBOARDING');
+      }
+    }, 1800);
 
     return () => clearTimeout(timer);
   }, [navigateTo]);

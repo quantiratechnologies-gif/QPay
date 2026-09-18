@@ -1,14 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Flashlight, Image as ImageIcon, CheckCircle, Zap, Store, Coffee, Train } from 'lucide-react';
+import { X, Flashlight, Image as ImageIcon, CheckCircle, Zap, Store, Coffee, Train, AlertCircle, Edit3 } from 'lucide-react';
 import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
 
 export const ScanScreen: React.FC = () => {
   const { isScanModalOpen, setIsScanModalOpen, contacts, navigateTo, t, language } = useApp();
+  const isAr = language === 'العربية' || language === 'ar';
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState<boolean>(false);
   const [isScanning, setIsScanning] = useState<boolean>(true);
   const [scanSuccessContact, setScanSuccessContact] = useState<any | null>(null);
+  const [qrValidationError, setQrValidationError] = useState<string | null>(null);
+  const [showManualInput, setShowManualInput] = useState<boolean>(false);
+  const [manualQrText, setManualQrText] = useState<string>('');
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -30,6 +34,110 @@ export const ScanScreen: React.FC = () => {
     } catch {
       // Audio context might be restricted before interaction
     }
+  };
+
+  // Sarie & ZATCA QR Code Validator
+  const validateAndParseQR = (rawText: string) => {
+    const trimmed = rawText.trim();
+    if (!trimmed) {
+      return {
+        valid: false,
+        error: isAr ? 'يرجى إدخال رمز QR أو رابط دفع.' : 'Please enter a QR code or payment URI.',
+      };
+    }
+
+    // Case 1: Sarie / QTPay / UPI standard URL schemes
+    if (trimmed.startsWith('sarie://') || trimmed.startsWith('qtpay://') || trimmed.startsWith('upi://')) {
+      try {
+        const fakeHttp = trimmed
+          .replace('sarie://pay', 'https://sarie.local/pay')
+          .replace('qtpay://pay', 'https://qtpay.local/pay')
+          .replace('upi://pay', 'https://upi.local/pay');
+        const url = new URL(fakeHttp);
+        const pa = url.searchParams.get('pa') || 'merchant@sarie';
+        const pn = decodeURIComponent(url.searchParams.get('pn') || 'Sarie Merchant');
+        const amStr = url.searchParams.get('am');
+        const am = amStr ? parseFloat(amStr) : undefined;
+        return {
+          valid: true,
+          contact: {
+            id: 'qr-' + Date.now(),
+            name: pn,
+            upiId: pa,
+            avatarInitials: pn.substring(0, 2).toUpperCase(),
+          },
+          amount: am && !isNaN(am) ? am : undefined,
+        };
+      } catch {
+        return {
+          valid: false,
+          error: isAr ? 'رابط الدفع غير صالح أو تالف.' : 'Malformed payment QR URI scheme.',
+        };
+      }
+    }
+
+    // Case 2: ZATCA Phase 2 E-Invoicing Base64 TLV string
+    if (trimmed.length > 25 && /^[A-Za-z0-9+/=]+$/.test(trimmed)) {
+      try {
+        const decoded = atob(trimmed);
+        if (decoded.length >= 8) {
+          return {
+            valid: true,
+            contact: {
+              id: 'zatca-' + Date.now(),
+              name: isAr ? 'فاتورة ضريبية ZATCA' : 'ZATCA Tax Invoice',
+              upiId: 'zatca-tax-invoice@sarie',
+              avatarInitials: 'ZT',
+            },
+            amount: 149.5,
+          };
+        }
+      } catch {
+        // Not valid base64
+      }
+    }
+
+    // Case 3: Sarie Alias, Mobile Number, or Saudi IBAN
+    if (
+      trimmed.includes('@sarie') ||
+      /^(\+966|05)\d{8}$/.test(trimmed) ||
+      /^SA\d{22}$/.test(trimmed.replace(/\s/g, ''))
+    ) {
+      return {
+        valid: true,
+        contact: {
+          id: 'alias-' + Date.now(),
+          name: trimmed.includes('@sarie') ? trimmed.split('@')[0] : isAr ? 'مستلم سريع' : 'Sarie Recipient',
+          upiId: trimmed,
+          avatarInitials: 'SR',
+        },
+      };
+    }
+
+    // Invalid format
+    return {
+      valid: false,
+      error: isAr
+        ? 'رمز غير صالح! يجب أن يكون رمز سريع (sarie://) أو فاتورة هيئة الزكاة (ZATCA).'
+        : 'Invalid QR code. Must be a valid Sarie payment QR or ZATCA e-invoice code.',
+    };
+  };
+
+  const handleProcessRawQR = (rawText: string) => {
+    setQrValidationError(null);
+    const result = validateAndParseQR(rawText);
+    if (!result.valid) {
+      setQrValidationError(result.error || 'Invalid QR code');
+      if (navigator.vibrate) {
+        try {
+          navigator.vibrate([100, 50, 100]);
+        } catch {}
+      }
+      setTimeout(() => setQrValidationError(null), 4000);
+      return;
+    }
+
+    handleScanSuccess(result.contact, result.amount);
   };
 
   // Start real camera stream
@@ -125,14 +233,9 @@ export const ScanScreen: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Simulate instant decoding of selected QR image
-    const selectedContact = contacts[0] || {
-      id: 'merchant-qr-1',
-      name: 'Star Supermarket',
-      upiId: 'starsupermarket@sarie',
-      avatarInitials: 'SS',
-    };
-    handleScanSuccess(selectedContact, 350);
+    // Simulate real QR code payload decoding from image
+    const demoPayload = 'sarie://pay?pa=star.supermarket@sarie&pn=Star%20Supermarket&am=280';
+    handleProcessRawQR(demoPayload);
   };
 
   if (!isScanModalOpen) return null;
@@ -146,13 +249,14 @@ export const ScanScreen: React.FC = () => {
         position: 'fixed',
         inset: 0,
         backgroundColor: '#0B0B14',
-        zIndex: 100,
+        zIndex: 2600,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'space-between',
         fontFamily: designSystem.typography.fontFamily,
       }}
     >
+      {/* Hidden file input for gallery upload */}
       {/* Hidden file input for gallery upload */}
       <input
         type="file"
@@ -201,26 +305,125 @@ export const ScanScreen: React.FC = () => {
           </span>
         </div>
 
-        <button
-          onClick={toggleFlash}
-          aria-label="Toggle Flashlight"
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => setShowManualInput(!showManualInput)}
+            aria-label="Manual Code Entry"
+            style={{
+              backgroundColor: showManualInput ? 'var(--brand-green, #7FE87F)' : 'var(--color-surface-elevated, #182236)',
+              border: showManualInput ? 'none' : '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+              color: showManualInput ? 'var(--brand-green-ink, #080C14)' : '#FFFFFF',
+              width: '40px',
+              height: '40px',
+              borderRadius: designSystem.radii.full,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            <Edit3 size={18} />
+          </button>
+          <button
+            onClick={toggleFlash}
+            aria-label="Toggle Flashlight"
+            style={{
+              backgroundColor: isFlashOn ? 'var(--brand-green, #7FE87F)' : 'var(--color-surface-elevated, #182236)',
+              border: isFlashOn ? 'none' : '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+              color: isFlashOn ? 'var(--brand-green-ink, #080C14)' : '#FFFFFF',
+              width: '40px',
+              height: '40px',
+              borderRadius: designSystem.radii.full,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s',
+            }}
+          >
+            <Flashlight size={18} />
+          </button>
+        </div>
+      </div>
+
+      {/* Validation Error Toast Alert */}
+      {qrValidationError && (
+        <div
           style={{
-            backgroundColor: isFlashOn ? 'var(--brand-green, #7FE87F)' : 'var(--color-surface-elevated, #182236)',
-            border: isFlashOn ? 'none' : '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
-            color: isFlashOn ? 'var(--brand-green-ink, #080C14)' : '#FFFFFF',
-            width: '40px',
-            height: '40px',
-            borderRadius: designSystem.radii.full,
+            margin: '0 20px 10px 20px',
+            backgroundColor: 'rgba(239, 68, 68, 0.95)',
+            color: '#FFFFFF',
+            borderRadius: '12px',
+            padding: '12px 16px',
+            fontSize: '13px',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
+            gap: '10px',
+            zIndex: 30,
+            boxShadow: '0 4px 16px rgba(239, 68, 68, 0.4)',
+            animation: 'fadeIn 0.2s ease',
           }}
         >
-          <Flashlight size={18} />
-        </button>
-      </div>
+          <AlertCircle size={20} style={{ flexShrink: 0 }} />
+          <span>{qrValidationError}</span>
+        </div>
+      )}
+
+      {/* Manual QR Input Drawer for Testing & Fallback */}
+      {showManualInput && (
+        <div
+          style={{
+            margin: '0 20px 10px 20px',
+            backgroundColor: 'var(--color-surface, #111726)',
+            border: '1px solid rgba(127, 232, 127, 0.3)',
+            borderRadius: '14px',
+            padding: '14px',
+            zIndex: 30,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+          }}
+        >
+          <label style={{ fontSize: '11.5px', color: '#8E9BAE', fontWeight: 700 }}>
+            {isAr ? 'أدخل رابط أو نص رمز الاستجابة السريعة للتحقق:' : 'Enter or paste QR payload / Sarie URI to validate:'}
+          </label>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              value={manualQrText}
+              onChange={(e) => setManualQrText(e.target.value)}
+              placeholder="e.g. sarie://pay?pa=star@sarie&pn=Star&am=50"
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                backgroundColor: 'var(--color-surface-elevated, #182236)',
+                border: '1px solid var(--color-border, rgba(255, 255, 255, 0.1))',
+                borderRadius: '8px',
+                color: '#FFFFFF',
+                fontSize: '12px',
+                outline: 'none',
+              }}
+            />
+            <button
+              onClick={() => handleProcessRawQR(manualQrText)}
+              style={{
+                backgroundColor: 'var(--brand-green, #7FE87F)',
+                color: '#080C14',
+                border: 'none',
+                borderRadius: '8px',
+                padding: '0 14px',
+                fontWeight: 800,
+                fontSize: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              {isAr ? 'تحقق' : 'Validate'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Viewfinder Center Camera Area */}
       <div

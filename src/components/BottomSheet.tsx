@@ -34,7 +34,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.85)',
         backdropFilter: 'blur(8px)',
-        zIndex: 100,
+        zIndex: 2500,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',

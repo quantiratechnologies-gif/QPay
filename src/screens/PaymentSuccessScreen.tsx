@@ -30,18 +30,74 @@ export const PaymentSuccessScreen: React.FC = () => {
   };
 
   const handleShare = () => {
+    const text = `${language === 'العربية' ? 'إيصال دفع عبر سريع - كيو تي باي' : 'Sarie Payment Receipt - QTPay'}\n` +
+      `${language === 'العربية' ? 'المستلم:' : 'Payee:'} ${displayTitle}\n` +
+      `${language === 'العربية' ? 'المبلغ:' : 'Amount:'} ${formatCurrency(txn.amount, language)}\n` +
+      `${language === 'العربية' ? 'المرجع البنكي:' : 'Reference (UTR):'} ${txn.utr}\n` +
+      `${language === 'العربية' ? 'رقم العملية:' : 'Txn ID:'} ${txn.id}`;
+
     if (navigator.share) {
       navigator.share({
         title: 'QTPay Receipt',
-        text: `${language === 'العربية' ? 'تم التحويل بنجاح!' : 'Payment Successful!'} ${formatCurrency(txn.amount, language)} ${language === 'العربية' ? 'إلى' : 'paid to'} ${displayTitle}. Ref: ${txn.utr}`,
-      }).catch(() => {});
+        text,
+      }).catch(() => {
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      });
     } else {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
       setDownloadMsg(true);
       setTimeout(() => setDownloadMsg(false), 2500);
     }
   };
 
   const handleDownloadReceipt = () => {
+    const receiptHtml = `<!DOCTYPE html>
+<html lang="${language === 'العربية' ? 'ar' : 'en'}" dir="${isRtl ? 'rtl' : 'ltr'}">
+<head>
+  <meta charset="UTF-8">
+  <title>QTPay Receipt - ${txn.id}</title>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 32px; background: #f8fafc; color: #0f172a; margin: 0; }
+    .card { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; border: 1px solid #e2e8f0; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); }
+    .header { text-align: center; border-bottom: 2px dashed #cbd5e1; padding-bottom: 20px; margin-bottom: 20px; }
+    .badge { display: inline-block; background: #dcfce7; color: #15803d; font-weight: bold; font-size: 13px; padding: 4px 12px; border-radius: 99px; margin-bottom: 8px; }
+    .amount { font-size: 32px; font-weight: 800; color: #16a34a; margin: 8px 0; }
+    .row { display: flex; justify-content: space-between; padding: 8px 0; font-size: 14px; border-bottom: 1px solid #f1f5f9; }
+    .label { color: #64748b; }
+    .value { font-weight: 600; }
+    .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="badge">${language === 'العربية' ? 'عملية سريعة معتمدة • ساما' : 'Sarie Verified • SAMA Regulated'}</div>
+      <div style="font-size: 18px; font-weight: 800; color: #0f172a;">QTPay Payment Receipt</div>
+      <div class="amount">${formatCurrency(txn.amount, language)}</div>
+      <div style="font-size: 14px; color: #475569;">${displayTitle}</div>
+    </div>
+    <div class="row"><span class="label">${language === 'العربية' ? 'رقم العملية' : 'Transaction ID'}</span><span class="value" style="font-family: monospace;">${txn.id}</span></div>
+    <div class="row"><span class="label">${language === 'العربية' ? 'المرجع البنكي UTR' : 'Sarie Reference'}</span><span class="value" style="font-family: monospace; color: #16a34a;">${txn.utr}</span></div>
+    <div class="row"><span class="label">${language === 'العربية' ? 'التاريخ والوقت' : 'Date & Time'}</span><span class="value">${formatDate(txn.timestamp, language)}</span></div>
+    <div class="row"><span class="label">${language === 'العربية' ? 'طريقة الدفع' : 'Payment Method'}</span><span class="value">Al Rajhi Bank •••• 4821</span></div>
+    <div class="row"><span class="label">${language === 'العربية' ? 'الحالة' : 'Status'}</span><span class="value" style="color: #16a34a;">${language === 'العربية' ? 'ناجحة فورياً' : 'Completed (Instant)'}</span></div>
+    <div class="footer">
+      Powered by Quantira Technologies • Sarie Instant Payments • SAMA
+    </div>
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([receiptHtml], { type: 'text/html;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `QTPay_Receipt_${txn.id}.html`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
     setDownloadMsg(true);
     setTimeout(() => setDownloadMsg(false), 2500);
   };

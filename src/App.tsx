@@ -123,6 +123,7 @@ const AppContent: React.FC = () => {
     currentScreen !== 'ONBOARDING' &&
     currentScreen !== 'MOBILE_NUMBER' &&
     currentScreen !== 'SMS_OTP' &&
+    currentScreen !== 'SET_PIN' &&
     currentScreen !== 'PERMISSIONS' &&
     currentScreen !== 'ONBOARDING_KYC' &&
     currentScreen !== 'ONBOARDING_BANK' &&

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plane, Car, Hotel, Compass, X, Check } from 'lucide-react';
+import { Plane, Car, Hotel, Compass, X, Check, Copy, CheckCheck } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { ListRow } from '../components/ListRow';
 import { useApp } from '../state/AppContext';
@@ -23,6 +23,7 @@ export const TravelScreen: React.FC<TravelScreenProps> = ({ initialBookings }) =
   const { openPinModal, completePayment, language, t, isRtl } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
   const [selectedBooking, setSelectedBooking] = useState<TravelBooking | null>(null);
+  const [copiedPnr, setCopiedPnr] = useState(false);
   const [confirmedTicket, setConfirmedTicket] = useState<{
     title: string;
     pnr: string;
@@ -183,7 +184,7 @@ export const TravelScreen: React.FC<TravelScreenProps> = ({ initialBookings }) =
             inset: 0,
             backgroundColor: 'rgba(11, 15, 25, 0.75)',
             backdropFilter: 'blur(8px)',
-            zIndex: 1000,
+            zIndex: 2600,
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -270,7 +271,7 @@ export const TravelScreen: React.FC<TravelScreenProps> = ({ initialBookings }) =
             inset: 0,
             backgroundColor: 'rgba(11, 15, 25, 0.75)',
             backdropFilter: 'blur(8px)',
-            zIndex: 1000,
+            zIndex: 2600,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -314,9 +315,30 @@ export const TravelScreen: React.FC<TravelScreenProps> = ({ initialBookings }) =
             <p style={{ fontSize: '13px', color: '#8E9BAE', margin: '0 0 20px 0' }}>{confirmedTicket.title}</p>
 
             <div style={{ backgroundColor: 'var(--color-surface-elevated, #182236)', borderRadius: '16px', padding: '16px', textAlign: isRtl ? 'right' : 'left', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '12px', color: '#8E9BAE' }}>{translateText('Booking Reference (PNR)', language)}</span>
-                <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--brand-green, #7FE87F)', fontFamily: 'monospace' }}>{confirmedTicket.pnr}</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--brand-green, #7FE87F)', fontFamily: 'monospace' }}>{confirmedTicket.pnr}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(confirmedTicket.pnr);
+                      setCopiedPnr(true);
+                      setTimeout(() => setCopiedPnr(false), 2000);
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: copiedPnr ? 'var(--brand-green, #7FE87F)' : '#8E9BAE',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      padding: '2px',
+                    }}
+                    title="Copy PNR"
+                  >
+                    {copiedPnr ? <CheckCheck size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                 <span style={{ fontSize: '12px', color: '#8E9BAE' }}>{t('txn_ref')}</span>

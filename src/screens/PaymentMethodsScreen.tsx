@@ -6,7 +6,7 @@ import { PaymentPartnerLogo } from '../components/PaymentPartnerLogo';
 import { useApp } from '../state/AppContext';
 
 export const PaymentMethodsScreen: React.FC = () => {
-  const { navigateTo, user, t, language } = useApp();
+  const { navigateTo, setIsAddBankModalOpen, user, t, language } = useApp();
   const displayName = t(user.name, user.name);
 
   return (
@@ -332,7 +332,7 @@ export const PaymentMethodsScreen: React.FC = () => {
 
         {/* Add New Bank / Card Button */}
         <div style={{ marginTop: '8px' }}>
-          <PrimaryButton onClick={() => navigateTo('BANK_ACCOUNTS')}>
+          <PrimaryButton onClick={() => setIsAddBankModalOpen(true)}>
             <Plus size={18} /> {t('banks.add_bank', 'Add New Bank or Card')}
           </PrimaryButton>
         </div>

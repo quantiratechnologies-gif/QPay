@@ -13,10 +13,12 @@ import { toArabicNumerals } from '../utils/i18n';
 export const ReceiveScreen: React.FC = () => {
   const { user, navigateTo, receiveMoney, bankAccounts, t, language, isRtl } = useApp();
   const [copied, setCopied] = useState(false);
+  const [copiedIban, setCopiedIban] = useState(false);
   const [customAmount, setCustomAmount] = useState<string>('');
   const [receivedToast, setReceivedToast] = useState<{ show: boolean; amount: number; sender: string } | null>(null);
 
   const primaryBank = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
+  const fullIban = 'SA03 8000 0000 6080 1014 4821';
   const numAmount = parseFloat(customAmount) || 0;
   const upiQrString = qrService.getUpiQrString(user.upiId, user.name, numAmount > 0 ? numAmount : undefined);
   const displayName = t(user.name, user.name);
@@ -57,6 +59,12 @@ export const ReceiveScreen: React.FC = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleCopyIban = () => {
+    navigator.clipboard.writeText(fullIban.replace(/\s+/g, ''));
+    setCopiedIban(true);
+    setTimeout(() => setCopiedIban(false), 2000);
+  };
+
   const handleShare = () => {
     if (navigator.share) {
       navigator
@@ -88,7 +96,7 @@ export const ReceiveScreen: React.FC = () => {
   };
 
   return (
-    <div className="fade-in" style={{ backgroundColor: '#080c14', minHeight: '100%', paddingBottom: '30px' }}>
+    <div className="fade-in" style={{ backgroundColor: '#080c14', minHeight: '100%', paddingBottom: '120px' }}>
       <AppHeader title={t('receive.title', 'Receive Money')} showBack />
 
       {/* Floating Success Toast when Money is Received */}
@@ -200,29 +208,59 @@ export const ReceiveScreen: React.FC = () => {
             {displayName}
           </h2>
 
-          {/* Copyable UPI ID pill */}
-          <button
-            onClick={handleCopy}
-            className="interactive-tap"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              backgroundColor: 'var(--color-surface-elevated, #182236)',
-              border: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-              borderRadius: '20px',
-              padding: '5px 12px',
-              marginTop: '6px',
-              marginBottom: '14px',
-              color: 'var(--brand-green, #7FE87F)',
-              fontSize: '12.5px',
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            <span>{user.upiId}</span>
-            {copied ? <CheckCircle2 size={14} color="var(--brand-green, #7FE87F)" /> : <Copy size={13} />}
-          </button>
+          {/* Identifiers Container: Sarie Alias & Full Saudi IBAN */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center', marginTop: '10px', marginBottom: '14px' }}>
+            {/* Sarie Alias Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600 }}>{language === 'العربية' ? 'معرّف سريع:' : 'Sarie Alias:'}</span>
+              <button
+                onClick={handleCopy}
+                className="interactive-tap"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'var(--color-surface-elevated, #182236)',
+                  border: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
+                  borderRadius: '20px',
+                  padding: '4px 12px',
+                  color: 'var(--brand-green, #7FE87F)',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{user.upiId}</span>
+                {copied ? <CheckCircle2 size={13} color="var(--brand-green, #7FE87F)" /> : <Copy size={12} />}
+              </button>
+            </div>
+
+            {/* Full Saudi IBAN Pill */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '11px', color: '#9ca3af', fontWeight: 600 }}>{language === 'العربية' ? 'الآيبان البنكي:' : 'Saudi IBAN:'}</span>
+              <button
+                onClick={handleCopyIban}
+                className="interactive-tap"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  backgroundColor: 'var(--color-surface-elevated, #182236)',
+                  border: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
+                  borderRadius: '20px',
+                  padding: '4px 12px',
+                  color: '#FFFFFF',
+                  fontFamily: 'monospace',
+                  fontSize: '11.5px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                <span>{fullIban}</span>
+                {copiedIban ? <CheckCircle2 size={13} color="var(--brand-green, #7FE87F)" /> : <Copy size={12} />}
+              </button>
+            </div>
+          </div>
 
           {/* Machine-Readable QR Code */}
           <div style={{ padding: '10px', backgroundColor: '#FFFFFF', borderRadius: '16px' }}>

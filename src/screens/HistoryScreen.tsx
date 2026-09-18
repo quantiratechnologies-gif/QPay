@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, Receipt, ShieldAlert, CheckCircle2, Clock, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Search, X, Receipt, ShieldAlert, CheckCircle2, Clock, AlertTriangle, ArrowRight, Download, FileText } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { TransactionRow } from '../components/TransactionRow';
 import { BottomSheet } from '../components/BottomSheet';
@@ -11,7 +11,7 @@ import type { Transaction } from '../types';
 type FilterType = 'all' | 'sent' | 'received' | 'pending';
 
 export const HistoryScreen: React.FC = () => {
-  const { transactions, t, isRtl, language } = useApp();
+  const { transactions, t, isRtl, language, user, bankAccounts } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,6 +20,102 @@ export const HistoryScreen: React.FC = () => {
   const [isDisputing, setIsDisputing] = useState(false);
   const [disputeReason, setDisputeReason] = useState('Duplicate Charge');
   const [disputeSubmitted, setDisputeSubmitted] = useState(false);
+  const [statementSuccess, setStatementSuccess] = useState(false);
+
+  const handleDownloadStatement = () => {
+    const primaryAccount = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
+    const iban = primaryAccount?.iban || 'SA03 8000 0000 6080 1014 4821';
+    const bankName = primaryAccount?.bankName || 'Al Rajhi Bank';
+    const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+
+    const rowsHtml = filteredTransactions
+      .map(
+        (txn) => `
+        <tr>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px;">${txn.date || 'TODAY'}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px; font-family: monospace;">${txn.utr}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px; font-weight: 600;">${txn.title}<br/><span style="font-size: 11px; color: #6B7280;">${txn.subTitle || ''}</span></td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px; text-transform: uppercase;">${txn.type}</td>
+          <td style="padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 13px; font-weight: bold; text-align: right; color: ${txn.type === 'received' ? '#059669' : '#111827'};">
+            ${txn.type === 'received' ? '+' : '-'} SAR ${txn.amount.toFixed(2)}
+          </td>
+        </tr>`
+      )
+      .join('');
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QTPay SAMA Statement - ${dateStr}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; padding: 32px; color: #111827; background: #fff; }
+    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #10B981; padding-bottom: 16px; margin-bottom: 24px; }
+    .title { font-size: 24px; font-weight: 800; color: #065F46; }
+    .meta { font-size: 12px; color: #4B5563; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; background: #F9FAFB; padding: 16px; border-radius: 8px; font-size: 13px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th { background: #F3F4F6; padding: 10px; text-align: left; font-size: 12px; font-weight: 700; color: #374151; border-bottom: 1px solid #D1D5DB; }
+    .footer { margin-top: 32px; border-top: 1px solid #E5E7EB; padding-top: 16px; font-size: 11px; color: #9CA3AF; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="title">QTPay • SAMA Statement</div>
+      <div class="meta">Saudi Arabian Monetary Authority (SAMA) Sarie IPS Clearing</div>
+    </div>
+    <div style="text-align: right;">
+      <div style="font-weight: bold; font-size: 14px;">Official Account Statement</div>
+      <div class="meta">Issued on: ${dateStr}</div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div>
+      <div><strong>Account Holder:</strong> ${user?.name || 'Authorized Customer'}</div>
+      <div><strong>Linked Mobile:</strong> ${user?.phone || '+966 50 123 4567'}</div>
+    </div>
+    <div>
+      <div><strong>Primary Bank:</strong> ${bankName}</div>
+      <div><strong>IBAN:</strong> ${iban}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Sarie UTR Ref</th>
+        <th>Description / Beneficiary</th>
+        <th>Type</th>
+        <th style="text-align: right;">Amount (SAR)</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    This is an electronically generated statement certified by QTPay Financial Systems compliant with Saudi Central Bank (SAMA) Fast Payment Network (Sarie) Regulations.
+  </div>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `QTPay_Statement_${new Date().toISOString().slice(0, 10)}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setStatementSuccess(true);
+    setTimeout(() => setStatementSuccess(false), 3000);
+  };
 
   const filteredTransactions = transactions.filter((t) => {
     const matchesFilter =
@@ -133,43 +229,98 @@ export const HistoryScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Filter Tabs / Chips */}
+      {/* Filter Tabs / Chips & Statement Download Action */}
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          justifyContent: 'space-between',
+          alignItems: 'center',
           padding: '0 20px',
           marginBottom: '18px',
-          overflowX: 'auto',
-          scrollbarWidth: 'none',
+          gap: '12px',
         }}
       >
-        {(['all', 'sent', 'received', 'pending'] as FilterType[]).map((f) => {
-          const isActive = filter === f;
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="interactive-tap"
-              style={{
-                backgroundColor: isActive ? 'var(--brand-green, #7FE87F)' : 'var(--color-surface, #111726)',
-                border: isActive ? '1px solid var(--brand-green, #7FE87F)' : '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-                color: isActive ? 'var(--brand-green-ink, #080C14)' : '#9ca3af',
-                borderRadius: '20px',
-                padding: '7px 16px',
-                fontSize: '12px',
-                fontWeight: 800,
-                textTransform: 'capitalize',
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.15s ease',
-              }}
-            >
-              {getFilterLabel(f)}
-            </button>
-          );
-        })}
+        <div
+          style={{
+            display: 'flex',
+            gap: '8px',
+            overflowX: 'auto',
+            scrollbarWidth: 'none',
+            flex: 1,
+          }}
+        >
+          {(['all', 'sent', 'received', 'pending'] as FilterType[]).map((f) => {
+            const isActive = filter === f;
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className="interactive-tap"
+                style={{
+                  backgroundColor: isActive ? 'var(--brand-green, #7FE87F)' : 'var(--color-surface, #111726)',
+                  border: isActive ? '1px solid var(--brand-green, #7FE87F)' : '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
+                  color: isActive ? 'var(--brand-green-ink, #080C14)' : '#9ca3af',
+                  borderRadius: '20px',
+                  padding: '7px 16px',
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  textTransform: 'capitalize',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                {getFilterLabel(f)}
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          onClick={handleDownloadStatement}
+          className="interactive-tap"
+          title="Download Statement"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            backgroundColor: 'var(--color-surface, #111726)',
+            border: '1px solid rgba(127, 232, 127, 0.3)',
+            color: 'var(--brand-green, #7FE87F)',
+            borderRadius: '20px',
+            padding: '7px 14px',
+            fontSize: '12px',
+            fontWeight: 800,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            flexShrink: 0,
+          }}
+        >
+          <Download size={14} />
+          <span>{isAr ? 'كشف الحساب' : 'Statement'}</span>
+        </button>
       </div>
+
+      {statementSuccess && (
+        <div
+          style={{
+            margin: '0 20px 16px 20px',
+            backgroundColor: 'var(--brand-green, #7FE87F)',
+            color: 'var(--brand-green-ink, #080C14)',
+            padding: '10px 16px',
+            borderRadius: '12px',
+            fontWeight: 800,
+            fontSize: '12.5px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            animation: 'fadeIn 0.2s ease',
+          }}
+        >
+          <CheckCircle2 size={16} />
+          <span>{isAr ? 'تم تنزيل كشف الحساب المعتمد بنجاح' : 'SAMA Statement downloaded successfully'}</span>
+        </div>
+      )}
 
       {/* Grouped Transaction Lists */}
       <div style={{ padding: '0 20px', marginBottom: '24px' }}>

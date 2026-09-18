@@ -23,7 +23,21 @@ export const SendAmountScreen: React.FC = () => {
 
   const initialAmount = screenParams.defaultAmount ? String(screenParams.defaultAmount) : '';
   const [amountStr, setAmountStr] = useState<string>(initialAmount);
+  const [activeChips, setActiveChips] = useState<number[]>([]);
   const [note, setNote] = useState<string>('');
+
+  const handleChipClick = (valNum: number) => {
+    const currentNum = parseFloat(amountStr) || 0;
+    if (activeChips.includes(valNum)) {
+      setActiveChips(activeChips.filter((c) => c !== valNum));
+      const newAmt = Math.max(0, currentNum - valNum);
+      setAmountStr(newAmt > 0 ? String(newAmt) : '');
+    } else {
+      setActiveChips([...activeChips, valNum]);
+      const newAmt = currentNum + valNum;
+      setAmountStr(String(newAmt));
+    }
+  };
 
   const numAmount = parseFloat(amountStr) || 0;
   const isExceedingBalance = numAmount > totalBalance;
@@ -168,13 +182,14 @@ export const SendAmountScreen: React.FC = () => {
           {/* Quick Amount Chips */}
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '18px' }}>
             {['50', '100', '500', '1000', '2000'].map((val) => {
-              const isSelected = amountStr === val;
+              const valNum = Number(val);
+              const isSelected = activeChips.includes(valNum);
               const formattedVal = language === 'العربية' ? `+${toArabicNumerals(val)} ر.س` : `+SAR ${val}`;
               return (
                 <button
                   key={val}
                   type="button"
-                  onClick={() => setAmountStr(val)}
+                  onClick={() => handleChipClick(valNum)}
                   className="interactive-tap"
                   style={{
                     backgroundColor: isSelected ? 'var(--brand-green-tint)' : 'var(--color-surface-elevated)',

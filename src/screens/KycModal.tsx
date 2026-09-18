@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar } from 'lucide-react';
+import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar, Upload, FileText, RefreshCw } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { SamaLogo } from '../components/SamaLogo';
 import { useApp } from '../state/AppContext';
@@ -12,6 +12,7 @@ export const KycModal: React.FC = () => {
   const [step, setStep] = useState<KycStep>('FORM');
   const [nationalId, setNationalId] = useState(kycData?.nationalId || '1098472910');
   const [dob, setDob] = useState(kycData?.dob || '1992-05-14');
+  const [attachedDocName, setAttachedDocName] = useState<string | null>('National_ID_Scan.pdf');
   const [errorMsg, setErrorMsg] = useState('');
 
   useEffect(() => {
@@ -193,6 +194,54 @@ export const KycModal: React.FC = () => {
               </div>
             </div>
 
+            {/* Document Attachment Field */}
+            <div>
+              <label
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: '8px',
+                  display: 'block',
+                }}
+              >
+                {language === 'العربية' ? 'إرفاق وثيقة الهوية (اختياري / إعادة التوثيق)' : 'Attach ID Document (Optional / Re-KYC)'}
+              </label>
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  border: '1px dashed var(--color-border)',
+                  borderRadius: '14px',
+                  padding: '12px 16px',
+                  cursor: 'pointer',
+                }}
+              >
+                <Upload size={18} color="var(--brand-green)" />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#FFFFFF', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {attachedDocName || (language === 'العربية' ? 'اختر صورة الهوية أو ملف PDF' : 'Select ID photo or PDF')}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#8E9BAE' }}>
+                    {language === 'العربية' ? 'JPG، PNG أو PDF (بحد أقصى ٥ ميغابايت)' : 'JPG, PNG or PDF (Max 5MB)'}
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  style={{ display: 'none' }}
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setAttachedDocName(f.name);
+                  }}
+                />
+              </label>
+            </div>
+
             {errorMsg && (
               <div style={{ fontSize: '12px', color: '#FF4757', fontWeight: 700 }}>
                 {errorMsg}
@@ -306,29 +355,55 @@ export const KycModal: React.FC = () => {
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleClose}
-              className="action-btn interactive-tap"
-              style={{
-                width: '100%',
-                padding: '15px',
-                backgroundColor: 'var(--brand-green)',
-                color: 'var(--brand-green-ink)',
-                border: 'none',
-                borderRadius: '16px',
-                fontSize: '14.5px',
-                fontWeight: 800,
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                boxShadow: 'none',
-              }}
-            >
-              <span>{language === 'العربية' ? 'إغلاق ومتابعة' : 'Done & Return'}</span>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setStep('FORM')}
+                className="action-btn interactive-tap"
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  backgroundColor: 'var(--color-surface-elevated)',
+                  color: 'var(--brand-green)',
+                  border: '1px solid var(--color-border)',
+                  borderRadius: '16px',
+                  fontSize: '13.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <RefreshCw size={16} />
+                <span>{language === 'العربية' ? 'تحديث الوثائق / إعادة التوثيق' : 'Update Documents / Re-KYC'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleClose}
+                className="action-btn interactive-tap"
+                style={{
+                  width: '100%',
+                  padding: '15px',
+                  backgroundColor: 'var(--brand-green)',
+                  color: 'var(--brand-green-ink)',
+                  border: 'none',
+                  borderRadius: '16px',
+                  fontSize: '14.5px',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: 'none',
+                }}
+              >
+                <span>{language === 'العربية' ? 'إغلاق ومتابعة' : 'Done & Return'}</span>
+              </button>
+            </div>
           </div>
         )}
 

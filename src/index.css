@@ -199,7 +199,7 @@ nav[role="navigation"] {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-bottom: 85px;
+  padding-bottom: calc(96px + env(safe-area-inset-bottom, 20px));
   position: relative;
   scrollbar-width: thin;
   background-color: var(--bg-page);

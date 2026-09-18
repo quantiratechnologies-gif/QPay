@@ -21,6 +21,19 @@ const SAUDI_BANKS: SaudiBankOption[] = [
   { name: 'D360 Bank', category: 'Digital Bank' },
 ];
 
+const SAUDI_MADA_BINS = [
+  '458838', '588845', '440647', '440795', '446404', '457865', '968201', '484783', // Al Rajhi
+  '588846', '417633', '446393', '409201', '486094', '489318', // SNB
+  '455708', '455036', '446672', '543357', '588847', '483010', // Riyad
+  '422817', '422818', '422819', '428671', '428672', '428673', // Alinma
+  '406136', '410621', '432328', '422674', '486095', // SAB
+  '458456', '462220', // BSFR
+  '419356', '439954', '530060', '588848', // ANB
+  '446394', '604906', // AlJazira
+  '457997', // GIB
+  '428331', // D360
+];
+
 type BankStep = 'SELECT_AND_MATCH' | 'AUTHORIZE_AND_CONNECT';
 
 export const AddBankModal: React.FC = () => {
@@ -28,8 +41,11 @@ export const AddBankModal: React.FC = () => {
 
   const [step, setStep] = useState<BankStep>('SELECT_AND_MATCH');
   const [selectedBank, setSelectedBank] = useState<string>('Al Rajhi Bank');
-  const [matchMethod, setMatchMethod] = useState<'mobile' | 'iban'>('mobile');
+  const [matchMethod, setMatchMethod] = useState<'mobile' | 'iban' | 'card'>('mobile');
   const [customIban, setCustomIban] = useState<string>('');
+  const [cardNumber, setCardNumber] = useState<string>('');
+  const [cardExpiry, setCardExpiry] = useState<string>('');
+  const [cardCvv, setCardCvv] = useState<string>('');
   const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '']);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
@@ -60,6 +76,25 @@ export const AddBankModal: React.FC = () => {
           language === 'العربية'
             ? 'يرجى إدخال رقم آيبان سعودي صحيح يبدأ بـ SA'
             : 'Please enter a valid Saudi IBAN starting with SA.'
+        );
+        return;
+      }
+    } else if (matchMethod === 'card') {
+      const cleanCard = cardNumber.replace(/\D/g, '');
+      if (cleanCard.length < 16) {
+        setErrorMessage(
+          language === 'العربية'
+            ? 'يرجى إدخال رقم بطاقة مدى مكون من ١٦ رقماً'
+            : 'Please enter a valid 16-digit card number.'
+        );
+        return;
+      }
+      const isMada = SAUDI_MADA_BINS.some((b) => cleanCard.startsWith(b));
+      if (!isMada) {
+        setErrorMessage(
+          language === 'العربية'
+            ? 'عذراً، يُسمح فقط ببطاقات مدى وبطاقات البنوك السعودية المعتمدة من ساما (SAMA).'
+            : 'Unsupported card. Only Saudi mada cards and SAMA-regulated bank cards are accepted.'
         );
         return;
       }
@@ -109,11 +144,16 @@ export const AddBankModal: React.FC = () => {
         ? customIban.toUpperCase()
         : `SA${Math.floor(10 + Math.random() * 89)} •••• ${Math.floor(1000 + Math.random() * 9000)}`;
 
-    const matchedValue = matchMethod === 'mobile' ? user.mobile : generatedIban;
+    const matchedValue =
+      matchMethod === 'mobile'
+        ? user.mobile
+        : matchMethod === 'card'
+        ? `mada •••• ${cardNumber.replace(/\s+/g, '').slice(-4)}`
+        : generatedIban;
 
     await addBankAccount(selectedBank, {
       iban: generatedIban,
-      accountType: 'Primary Account',
+      accountType: matchMethod === 'card' ? 'mada Debit Card' : 'Primary Account',
       matchedWith: matchedValue,
     });
 
@@ -256,7 +296,7 @@ export const AddBankModal: React.FC = () => {
               >
                 {language === 'العربية' ? 'طريقة الربط' : 'Link With'}
               </div>
-              <div className="match-tabs" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div className="match-tabs" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
                 <div
                   className={`match-tab interactive-tap ${matchMethod === 'mobile' ? 'active' : ''}`}
                   onClick={() => setMatchMethod('mobile')}
@@ -265,18 +305,18 @@ export const AddBankModal: React.FC = () => {
                     border: matchMethod === 'mobile' ? '1px solid var(--brand-green)' : '1px solid var(--color-border)',
                     color: matchMethod === 'mobile' ? 'var(--brand-green)' : '#9ca3af',
                     borderRadius: '14px',
-                    padding: '11px',
+                    padding: '10px 6px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '12.5px',
+                    gap: '6px',
+                    fontSize: '11.5px',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  <Smartphone size={16} color={matchMethod === 'mobile' ? 'var(--brand-green)' : '#9ca3af'} />
-                  <span>{language === 'العربية' ? 'رقم الجوال' : 'Mobile Number'}</span>
+                  <Smartphone size={14} color={matchMethod === 'mobile' ? 'var(--brand-green)' : '#9ca3af'} />
+                  <span>{language === 'العربية' ? 'الجوال' : 'Mobile'}</span>
                 </div>
                 <div
                   className={`match-tab interactive-tap ${matchMethod === 'iban' ? 'active' : ''}`}
@@ -286,20 +326,114 @@ export const AddBankModal: React.FC = () => {
                     border: matchMethod === 'iban' ? '1px solid var(--brand-green)' : '1px solid var(--color-border)',
                     color: matchMethod === 'iban' ? 'var(--brand-green)' : '#9ca3af',
                     borderRadius: '14px',
-                    padding: '11px',
+                    padding: '10px 6px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '8px',
-                    fontSize: '12.5px',
+                    gap: '6px',
+                    fontSize: '11.5px',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  <CreditCard size={16} color={matchMethod === 'iban' ? 'var(--brand-green)' : '#9ca3af'} />
-                  <span>{language === 'العربية' ? 'الآيبان (IBAN)' : 'IBAN'}</span>
+                  <CreditCard size={14} color={matchMethod === 'iban' ? 'var(--brand-green)' : '#9ca3af'} />
+                  <span>{language === 'العربية' ? 'الآيبان' : 'IBAN'}</span>
+                </div>
+                <div
+                  className={`match-tab interactive-tap ${matchMethod === 'card' ? 'active' : ''}`}
+                  onClick={() => setMatchMethod('card')}
+                  style={{
+                    backgroundColor: matchMethod === 'card' ? 'var(--brand-green-tint)' : 'var(--color-surface-elevated)',
+                    border: matchMethod === 'card' ? '1px solid var(--brand-green)' : '1px solid var(--color-border)',
+                    color: matchMethod === 'card' ? 'var(--brand-green)' : '#9ca3af',
+                    borderRadius: '14px',
+                    padding: '10px 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                    fontSize: '11.5px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  <CreditCard size={14} color={matchMethod === 'card' ? 'var(--brand-green)' : '#9ca3af'} />
+                  <span>{language === 'العربية' ? 'بطاقة مدى' : 'mada Card'}</span>
                 </div>
               </div>
+
+              {matchMethod === 'card' && (
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }} className="fade-in">
+                  <input
+                    type="text"
+                    value={cardNumber}
+                    onChange={(e) => {
+                      const v = e.target.value.replace(/\D/g, '').slice(0, 16);
+                      setCardNumber(v.replace(/(\d{4})(?=\d)/g, '$1 '));
+                    }}
+                    placeholder={language === 'العربية' ? 'رقم بطاقة مدى (١٦ رقماً)' : 'mada Card Number (16 digits)'}
+                    maxLength={19}
+                    style={{
+                      width: '100%',
+                      padding: '13px 16px',
+                      borderRadius: '14px',
+                      backgroundColor: 'var(--color-surface-elevated)',
+                      border: '1px solid var(--color-border)',
+                      color: '#FFFFFF',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      fontFamily: 'monospace',
+                      boxSizing: 'border-box',
+                      outline: 'none',
+                    }}
+                    dir="ltr"
+                  />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                    <input
+                      type="text"
+                      value={cardExpiry}
+                      onChange={(e) => setCardExpiry(e.target.value.slice(0, 5))}
+                      placeholder="MM/YY"
+                      maxLength={5}
+                      style={{
+                        padding: '13px 16px',
+                        borderRadius: '14px',
+                        backgroundColor: 'var(--color-surface-elevated)',
+                        border: '1px solid var(--color-border)',
+                        color: '#FFFFFF',
+                        fontSize: '13.5px',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        textAlign: 'center',
+                      }}
+                      dir="ltr"
+                    />
+                    <input
+                      type="password"
+                      value={cardCvv}
+                      onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                      placeholder="CVV"
+                      maxLength={3}
+                      style={{
+                        padding: '13px 16px',
+                        borderRadius: '14px',
+                        backgroundColor: 'var(--color-surface-elevated)',
+                        border: '1px solid var(--color-border)',
+                        color: '#FFFFFF',
+                        fontSize: '13.5px',
+                        fontWeight: 700,
+                        fontFamily: 'monospace',
+                        boxSizing: 'border-box',
+                        outline: 'none',
+                        textAlign: 'center',
+                      }}
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
 
               {matchMethod === 'iban' && (
                 <div style={{ marginTop: '12px' }} className="fade-in">

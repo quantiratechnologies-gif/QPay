@@ -24,7 +24,13 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   showSettings = true,
   rightAction,
 }) => {
-  const { user, goBack, navigateTo, currentScreen, isRtl, t } = useApp();
+  const { user, goBack, navigateTo, currentScreen, isRtl, t, language } = useApp();
+
+  const formattedDate = new Intl.DateTimeFormat(language === 'العربية' ? 'ar-SA' : 'en-US', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  }).format(new Date());
 
   const handleBack = () => {
     if (onBack) onBack();
@@ -142,34 +148,48 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         }}
       >
         {displayTitle ? (
-          <h2
-            style={{
-              fontSize: '15.5px',
-              fontWeight: '800',
-              color: '#FFFFFF',
-              margin: 0,
-              textAlign: 'center',
-              letterSpacing: '-0.01em',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              maxWidth: '100%',
-            }}
-          >
-            {displayTitle}
-          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '100%' }}>
+            <h2
+              style={{
+                fontSize: '15.5px',
+                fontWeight: '800',
+                color: '#FFFFFF',
+                margin: 0,
+                textAlign: 'center',
+                letterSpacing: '-0.01em',
+                whiteSpace: 'nowrap',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                maxWidth: '100%',
+              }}
+            >
+              {displayTitle}
+            </h2>
+          </div>
         ) : (
           <div
             onClick={() => navigateTo('HOME')}
             style={{
               cursor: 'pointer',
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
+              gap: '2px',
               maxWidth: '100%',
             }}
           >
-            <AlphPayLogo variant="header" size={22} themeMode="dark" />
+            <AlphPayLogo variant="header" size={20} themeMode="dark" />
+            <span
+              style={{
+                fontSize: '10.5px',
+                color: 'var(--brand-green, #7FE87F)',
+                fontWeight: 700,
+                letterSpacing: '0.02em',
+              }}
+            >
+              {formattedDate}
+            </span>
           </div>
         )}
       </div>
