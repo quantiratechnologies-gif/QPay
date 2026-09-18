@@ -77,6 +77,35 @@ export interface DeviceSession {
   isCurrent: boolean;
 }
 
+export interface SplitMember {
+  id: string;
+  name: string;
+  upiId: string;
+  avatarInitials: string;
+  amount: number;
+  hasPaid: boolean;
+}
+
+export interface SplitExpense {
+  id: string;
+  title: string;
+  totalAmount: number;
+  creatorUpiId: string;
+  date: string;
+  timestamp: Date;
+  status: 'active' | 'settled';
+  members: SplitMember[];
+}
+
+export interface TransferLimits {
+  dailyLimit: number;
+  dailyUsed: number;
+  perTransactionLimit: number;
+  monthlyLimit: number;
+  monthlyUsed: number;
+  contactlessLimit: number;
+}
+
 export type ScreenId =
   | 'SPLASH'
   | 'ONBOARDING'
@@ -96,8 +125,10 @@ export type ScreenId =
   | 'RECEIVE'
   | 'SCAN'
   | 'REQUEST_MONEY'
+  | 'SPLIT_EXPENSES'
   | 'PROFILE'
   | 'BANK_ACCOUNTS'
+  | 'TRANSFER_LIMITS'
   | 'UPI_SETTINGS'
   | 'PAYMENT_METHODS'
   | 'SECURITY'
@@ -112,5 +143,6 @@ export type ScreenId =
   | 'FOOD';
 
 export type BottomTab = 'home' | 'spend' | 'account' | 'pay' | 'scan' | 'history' | 'profile';
+
 
 

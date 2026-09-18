@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, User as UserIcon, Phone, Mail, AtSign, Check, AlertCircle, Camera } from 'lucide-react';
 import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
+import { formatSaudiMobile } from '../utils/formatters';
 
 interface EditProfileModalProps {
   isOpen?: boolean;
@@ -375,8 +376,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen: prop
                   id="edit-mobile-input"
                   type="tel"
                   value={mobile}
-                  onChange={(e) => setMobile(e.target.value)}
+                  onChange={(e) => {
+                    const raw = e.target.value.replace(/\D/g, '');
+                    if (raw.length <= 12) {
+                      setMobile(formatSaudiMobile(e.target.value));
+                    }
+                  }}
                   placeholder="+966 50 123 4567"
+                  maxLength={16}
                   required
                   style={{
                     width: '100%',

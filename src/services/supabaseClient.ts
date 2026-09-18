@@ -1,15 +1,18 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import type { Transaction, User } from '../types';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || 'https://sb-qpay-saudi.supabase.co';
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_fiRLd5ddXPUH_onp8AH86w_JQoVgAmH';
+const globalProc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
+const envObj = (typeof import.meta !== 'undefined' && import.meta && import.meta.env) ? import.meta.env : (globalProc && globalProc.env ? globalProc.env : {});
+const SUPABASE_URL = envObj.VITE_SUPABASE_URL || 'https://sb-qpay-saudi.supabase.co';
+const SUPABASE_ANON_KEY = envObj.VITE_SUPABASE_ANON_KEY || 'sb_publishable_fiRLd5ddXPUH_onp8AH86w_JQoVgAmH';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
   if (supabaseInstance) return supabaseInstance;
   try {
-    if (SUPABASE_URL && SUPABASE_ANON_KEY) {
+    const isPlaceholder = !SUPABASE_URL || SUPABASE_URL.includes('sb-qpay-saudi.supabase.co');
+    if (!isPlaceholder && SUPABASE_URL && SUPABASE_ANON_KEY) {
       supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         auth: {
           persistSession: true,

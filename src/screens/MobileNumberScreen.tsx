@@ -160,7 +160,13 @@ export const MobileNumberScreen: React.FC = () => {
               <input
                 id="mobile-input"
                 type="tel"
-                value={mobileNumber}
+                value={
+                  mobileNumber.length <= 2
+                    ? mobileNumber
+                    : mobileNumber.length <= 5
+                    ? `${mobileNumber.slice(0, 2)} ${mobileNumber.slice(2)}`
+                    : `${mobileNumber.slice(0, 2)} ${mobileNumber.slice(2, 5)} ${mobileNumber.slice(5, 9)}`
+                }
                 onChange={(e) => {
                   let val = e.target.value.replace(/\D/g, '');
                   if (val.startsWith('009665')) val = val.substring(5);
@@ -169,7 +175,7 @@ export const MobileNumberScreen: React.FC = () => {
                   setMobileNumber(val.slice(0, 9));
                 }}
                 placeholder="50 123 4567"
-                maxLength={20}
+                maxLength={12}
                 required
                 style={{
                   background: 'none',

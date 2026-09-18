@@ -120,8 +120,10 @@ export const ElectricityScreen: React.FC = () => {
             <input
               id="elec-consumer-input"
               type="text"
+              inputMode="numeric"
+              maxLength={14}
               value={consumerNo}
-              onChange={(e) => setConsumerNo(e.target.value)}
+              onChange={(e) => setConsumerNo(e.target.value.replace(/\D/g, '').slice(0, 14))}
               placeholder={language === 'العربية' ? 'أدخل رقم الحساب / المشترك' : 'Enter consumer number'}
               style={{
                 width: '100%',

@@ -136,10 +136,11 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         )}
       </div>
 
-      {/* Center Slot: Flexible Non-overlapping Brand Logo or Screen Title */}
+      {/* Center Slot: Flexible Non-overlapping Brand Logo or Screen Title with Day & Date */}
       <div
         style={{
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
           flex: 1,
@@ -177,6 +178,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               justifyContent: 'center',
               gap: '2px',
               maxWidth: '100%',
+              gap: '2px',
             }}
           >
             <AlphPayLogo variant="header" size={20} themeMode="dark" />

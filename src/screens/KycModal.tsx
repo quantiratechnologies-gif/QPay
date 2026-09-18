@@ -7,9 +7,21 @@ import { useApp } from '../state/AppContext';
 type KycStep = 'FORM' | 'VERIFYING' | 'CERTIFIED';
 
 export const KycModal: React.FC = () => {
-  const { isKycModalOpen, setIsKycModalOpen, setIsKycVerified, isKycVerified, kycData, isRtl, language } = useApp();
+  const {
+    isKycModalOpen,
+    setIsKycModalOpen,
+    isKycVerified,
+    kycData,
+    submitReKyc,
+    isRtl,
+    language,
+  } = useApp();
+
+  const isAr = language === 'العربية';
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<KycStep>('FORM');
+  const [docType, setDocType] = useState<string>('national_id');
   const [nationalId, setNationalId] = useState(kycData?.nationalId || '1098472910');
   const [dob, setDob] = useState(kycData?.dob || '1992-05-14');
   const [attachedDocName, setAttachedDocName] = useState<string | null>('National_ID_Scan.pdf');
@@ -31,59 +43,98 @@ export const KycModal: React.FC = () => {
     setIsKycModalOpen(false);
   };
 
-  const handleVerify = (e?: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const sizeKb = Math.round(file.size / 1024);
+    const sizeStr = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      setSelectedFile({
+        name: file.name,
+        size: sizeStr,
+        previewUrl: uploadEvent.target?.result as string,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUseSampleDoc = () => {
+    setSelectedFile({
+      name: docType === 'iqama' ? 'Iqama_Digital_Copy_2026.pdf' : 'National_ID_Saudi_2026.jpg',
+      size: '1.2 MB',
+      previewUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=300&auto=format&fit=crop&q=60',
+    });
+  };
+
+  const handleVerify = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (nationalId.replace(/\D/g, '').length < 10) {
+
+    const cleanId = nationalId.replace(/\D/g, '');
+    if (cleanId.length < 10) {
       setErrorMsg(
-        language === 'العربية'
+        isAr
           ? 'يرجى إدخال رقم هوية وطنية أو إقامة صحيح من ١٠ أرقام.'
           : 'Please enter a valid 10-digit National ID or Iqama Number.'
       );
       return;
     }
 
+    if (!selectedFile) {
+      setErrorMsg(
+        isAr
+          ? 'يرجى إرفاق صورة الهوية أو المستند لإتمام التحقق (Re-KYC).'
+          : 'Please attach a copy of your National ID or Iqama document to continue.'
+      );
+      return;
+    }
+
     setErrorMsg('');
     setStep('VERIFYING');
-    setTimeout(() => {
-      setIsKycVerified(true, {
-        nationalId,
+
+    setTimeout(async () => {
+      await submitReKyc({
+        frontDocUrl: selectedFile.previewUrl,
+        docType,
+        nationalId: cleanId,
         dob,
-        verifiedAt: new Date().toLocaleDateString('en-GB'),
       });
       setStep('CERTIFIED');
-    }, 750);
+    }, 1200);
   };
 
   return (
     <BottomSheet
       isOpen={isKycModalOpen}
       onClose={handleClose}
-      title={language === 'العربية' ? 'توثيق الهوية الوطنية' : 'National ID Verification'}
+      title={isAr ? 'توثيق الهوية الوطنية (Re-KYC)' : 'Identity Verification (Re-KYC)'}
     >
       <div style={{ paddingBottom: '8px' }}>
         {/* Header Identity Badge */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
           <div
             style={{
-              width: '40px',
-              height: '40px',
-              borderRadius: '12px',
-              backgroundColor: 'var(--brand-green-tint)',
-              border: 'none',
+              width: '44px',
+              height: '44px',
+              borderRadius: '14px',
+              backgroundColor: 'rgba(127, 232, 127, 0.15)',
+              border: '1px solid rgba(127, 232, 127, 0.3)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               flexShrink: 0,
             }}
           >
-            <ShieldCheck size={20} color="var(--brand-green)" />
+            <ShieldCheck size={22} color="#7FE87F" />
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-              {language === 'العربية' ? 'توثيق الهوية' : 'Verify Identity'}
+              {isAr ? 'إعادة توثيق الهوية (Re-KYC)' : 'Digital Identity & Re-KYC'}
             </h3>
-            <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500, marginTop: '2px', display: 'block' }}>
-              {language === 'العربية' ? 'توثيق سريع عبر منصة أبشر' : 'Quick verification with Absher'}
+            <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '2px', display: 'block' }}>
+              {isAr ? 'ربط مباشر مع النفاذ الوطني الموحد وسامـا' : 'Direct verification with Nafath & SAMA'}
             </span>
           </div>
         </div>
@@ -91,34 +142,97 @@ export const KycModal: React.FC = () => {
         {/* STEP 1: FORM */}
         {step === 'FORM' && (
           <form onSubmit={handleVerify} className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {/* National ID Input */}
+            {/* Document Type Selector */}
             <div>
               <label
-                htmlFor="modal-national-id"
                 style={{
-                  fontSize: '11.5px',
-                  fontWeight: 700,
+                  fontSize: '11px',
+                  fontWeight: 800,
                   color: '#9ca3af',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.04em',
+                  letterSpacing: '0.06em',
                   marginBottom: '8px',
                   display: 'block',
                 }}
               >
-                {language === 'العربية' ? 'رقم الهوية الوطنية / الإقامة' : 'National ID / Iqama'}
+                {isAr ? 'نوع الوثيقة الرسمية' : 'Document Type'}
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <button
+                  type="button"
+                  onClick={() => setDocType('national_id')}
+                  className="interactive-tap"
+                  style={{
+                    padding: '12px 10px',
+                    borderRadius: '14px',
+                    backgroundColor: docType === 'national_id' ? 'rgba(127, 232, 127, 0.15)' : '#182236',
+                    border: docType === 'national_id' ? '1.5px solid #7FE87F' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: docType === 'national_id' ? '#7FE87F' : '#FFFFFF',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <Building2 size={14} />
+                  <span>{isAr ? 'الهوية الوطنية' : 'Saudi National ID'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDocType('iqama')}
+                  className="interactive-tap"
+                  style={{
+                    padding: '12px 10px',
+                    borderRadius: '14px',
+                    backgroundColor: docType === 'iqama' ? 'rgba(127, 232, 127, 0.15)' : '#182236',
+                    border: docType === 'iqama' ? '1.5px solid #7FE87F' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: docType === 'iqama' ? '#7FE87F' : '#FFFFFF',
+                    fontSize: '12px',
+                    fontWeight: 800,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <UserCheck size={14} />
+                  <span>{isAr ? 'هوية مقيم (إقامة)' : 'Iqama Residence'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* National ID / Iqama Input */}
+            <div>
+              <label
+                htmlFor="modal-national-id"
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 800,
+                  color: '#9ca3af',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: '8px',
+                  display: 'block',
+                }}
+              >
+                {docType === 'iqama' ? (isAr ? 'رقم الإقامة (١٠ أرقام تبدأ بـ ٢)' : 'Iqama Number (10 digits starting with 2)') : (isAr ? 'رقم الهوية الوطنية (١٠ أرقام تبدأ بـ ١)' : 'National ID Number (10 digits starting with 1)')}
               </label>
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  border: '1px solid var(--color-border)',
+                  backgroundColor: '#182236',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '14px',
                   padding: '13px 16px',
                   gap: '12px',
                 }}
               >
-                <UserCheck size={18} color="var(--brand-green)" style={{ flexShrink: 0 }} />
+                <UserCheck size={18} color="#7FE87F" style={{ flexShrink: 0 }} />
                 <input
                   id="modal-national-id"
                   type="text"
@@ -126,7 +240,7 @@ export const KycModal: React.FC = () => {
                   maxLength={10}
                   value={nationalId}
                   onChange={(e) => setNationalId(e.target.value.replace(/\D/g, '').slice(0, 10))}
-                  placeholder="1098472910"
+                  placeholder={docType === 'iqama' ? '2489102941' : '1098472910'}
                   required
                   style={{
                     background: 'none',
@@ -159,20 +273,20 @@ export const KycModal: React.FC = () => {
                   display: 'block',
                 }}
               >
-                {language === 'العربية' ? 'تاريخ الميلاد' : 'Date of Birth'}
+                {isAr ? 'تاريخ الميلاد' : 'Date of Birth'}
               </label>
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  backgroundColor: 'var(--color-surface-elevated)',
-                  border: '1px solid var(--color-border)',
+                  backgroundColor: '#182236',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
                   borderRadius: '14px',
                   padding: '13px 16px',
                   gap: '12px',
                 }}
               >
-                <Calendar size={18} color="var(--brand-green)" style={{ flexShrink: 0 }} />
+                <Calendar size={18} color="#7FE87F" style={{ flexShrink: 0 }} />
                 <input
                   id="modal-dob"
                   type="date"
@@ -243,35 +357,33 @@ export const KycModal: React.FC = () => {
             </div>
 
             {errorMsg && (
-              <div style={{ fontSize: '12px', color: '#FF4757', fontWeight: 700 }}>
+              <div style={{ fontSize: '12px', color: '#FF4757', fontWeight: 700, backgroundColor: 'rgba(255, 71, 87, 0.1)', padding: '10px 14px', borderRadius: '12px' }}>
                 {errorMsg}
               </div>
             )}
 
             <button
               type="submit"
-              disabled={nationalId.length < 10}
               className="action-btn interactive-tap"
               style={{
-                marginTop: '6px',
+                marginTop: '4px',
                 width: '100%',
                 padding: '15px',
-                backgroundColor: nationalId.length >= 10 ? 'var(--brand-green)' : '#182236',
-                color: nationalId.length >= 10 ? 'var(--brand-green-ink)' : '#6b7280',
-                border: nationalId.length >= 10 ? 'none' : '1px solid var(--color-border)',
+                backgroundColor: '#7FE87F',
+                color: '#080C14',
+                border: 'none',
                 borderRadius: '16px',
                 fontSize: '14.5px',
                 fontWeight: 800,
-                cursor: nationalId.length >= 10 ? 'pointer' : 'not-allowed',
+                cursor: 'pointer',
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
                 gap: '8px',
-                boxShadow: 'none',
-                transition: 'all 0.2s ease',
+                boxShadow: '0 4px 14px rgba(127, 232, 127, 0.3)',
               }}
             >
-              <span>{language === 'العربية' ? 'توثيق الهوية ومتابعة' : 'Verify & Continue'}</span>
+              <span>{isAr ? 'توثيق الهوية عبر النفاذ الوطني' : 'Verify via Nafath & SAMA'}</span>
               <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
             </button>
           </form>
@@ -285,21 +397,21 @@ export const KycModal: React.FC = () => {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--brand-green-tint)',
-                border: '1.5px solid var(--brand-green)',
+                backgroundColor: 'rgba(127, 232, 127, 0.15)',
+                border: '1.5px solid #7FE87F',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px auto',
               }}
             >
-              <Loader2 size={32} color="var(--brand-green)" className="animate-spin" />
+              <Loader2 size={32} color="#7FE87F" className="animate-spin" />
             </div>
             <h4 style={{ fontSize: '16px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 6px 0' }}>
-              {language === 'العربية' ? 'جاري التحقق من الهوية الرقمية...' : 'Verifying Digital Identity...'}
+              {isAr ? 'جاري التحقق والمطابقة مع النفاذ الوطني...' : 'Verifying with Nafath Registry...'}
             </h4>
             <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
-              {language === 'العربية' ? 'المطابقة المباشرة مع السجل الوطني الموحد' : 'Matching records with national registry'}
+              {isAr ? 'مطابقة الوثائق المرفقة وسجل البنك المركزي السعودي' : 'Matching attached documents with SAMA & Absher records'}
             </p>
           </div>
         )}
@@ -312,46 +424,55 @@ export const KycModal: React.FC = () => {
                 width: '64px',
                 height: '64px',
                 borderRadius: '50%',
-                backgroundColor: 'var(--brand-green-tint)',
-                border: '1.5px solid var(--brand-green)',
+                backgroundColor: 'rgba(127, 232, 127, 0.15)',
+                border: '1.5px solid #7FE87F',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 margin: '0 auto 16px auto',
               }}
             >
-              <CheckCircle2 size={36} color="var(--brand-green)" />
+              <CheckCircle2 size={36} color="#7FE87F" />
             </div>
 
-            <h4 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 16px 0' }}>
-              {language === 'العربية' ? 'تم توثيق الهوية بنجاح' : 'Identity Verified'}
+            <h4 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: '0 0 6px 0' }}>
+              {isAr ? 'تم توثيق الهوية الوطنية بنجاح' : 'National ID Verified'}
             </h4>
+            <div style={{ fontSize: '12px', color: '#7FE87F', fontWeight: 700, marginBottom: '18px' }}>
+              {isAr ? 'حسابك معتمد وموثق بالكامل لدى سامـا' : 'Fully certified & compliant with SAMA regulations'}
+            </div>
 
             <div
               style={{
-                backgroundColor: 'var(--color-surface-elevated)',
+                backgroundColor: '#182236',
                 borderRadius: '16px',
-                border: '1px solid var(--color-border)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
                 padding: '16px',
                 marginBottom: '20px',
                 textAlign: isRtl ? 'right' : 'left',
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{language === 'العربية' ? 'رقم الهوية' : 'National ID'}</span>
+                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{isAr ? 'رقم الهوية' : 'National ID'}</span>
                 <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#FFFFFF', fontFamily: 'monospace' }}>
-                  {nationalId}
+                  {kycData?.nationalId || nationalId}
                 </span>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{language === 'العربية' ? 'حالة التوثيق' : 'Status'}</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--brand-green)' }}>
-                  {language === 'العربية' ? 'موثق' : 'Verified'}
+                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{isAr ? 'حالة التوثيق' : 'Status'}</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#7FE87F' }}>
+                  {isAr ? 'معتمد وموثق (Nafath)' : 'Certified (Nafath)'}
                 </span>
               </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{isAr ? 'الحد اليومي المتاح' : 'Daily Sarie Limit'}</span>
+                <span style={{ fontSize: '12.5px', fontWeight: 800, color: '#7FE87F' }}>SAR 50,000</span>
+              </div>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{language === 'العربية' ? 'الحد اليومي' : 'Daily Limit'}</span>
-                <span style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--brand-green)' }}>SAR 50,000</span>
+                <span style={{ fontSize: '12px', color: '#9ca3af' }}>{isAr ? 'تاريخ التوثيق' : 'Verified At'}</span>
+                <span style={{ fontSize: '12px', fontWeight: 700, color: '#8E9BAE' }}>
+                  {kycData?.verifiedAt || new Date().toLocaleDateString('en-GB')}
+                </span>
               </div>
             </div>
 
@@ -411,9 +532,9 @@ export const KycModal: React.FC = () => {
         <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <SamaLogo height={12} themeMode="green" />
           <span style={{ fontSize: '10.5px', color: '#9ca3af', fontWeight: 600 }}>
-            {language === 'العربية'
-              ? 'توثيق رسمي ومعتمد • البنك المركزي السعودي'
-              : 'Official Identity Verification • SAMA Regulated'}
+            {isAr
+              ? 'توثيق رسمي ومعتمد • البنك المركزي السعودي والنفاذ الوطني'
+              : 'Official Identity Verification • SAMA & Nafath Regulated'}
           </span>
         </div>
       </div>

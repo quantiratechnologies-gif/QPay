@@ -21,8 +21,10 @@ import { HistoryScreen } from './screens/HistoryScreen';
 import { ReceiveScreen } from './screens/ReceiveScreen';
 import { ScanScreen } from './screens/ScanScreen';
 import { RequestMoneyScreen } from './screens/RequestMoneyScreen';
+import { SplitExpensesScreen } from './screens/SplitExpensesScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { BankAccountsScreen } from './screens/BankAccountsScreen';
+import { TransferLimitsScreen } from './screens/TransferLimitsScreen';
 import { UPISettingsScreen } from './screens/UPISettingsScreen';
 import { PaymentMethodsScreen } from './screens/PaymentMethodsScreen';
 import { SecurityScreen } from './screens/SecurityScreen';
@@ -85,10 +87,14 @@ const AppContent: React.FC = () => {
         return <ReceiveScreen />;
       case 'REQUEST_MONEY':
         return <RequestMoneyScreen />;
+      case 'SPLIT_EXPENSES':
+        return <SplitExpensesScreen />;
       case 'PROFILE':
         return <ProfileScreen />;
       case 'BANK_ACCOUNTS':
         return <BankAccountsScreen />;
+      case 'TRANSFER_LIMITS':
+        return <TransferLimitsScreen />;
       case 'UPI_SETTINGS':
         return <UPISettingsScreen />;
       case 'PAYMENT_METHODS':

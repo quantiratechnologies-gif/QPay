@@ -8,6 +8,8 @@ import { useApp } from '../state/AppContext';
 import { formatCurrency } from '../utils/formatters';
 import type { Transaction } from '../types';
 
+import { pdfGenerator } from '../utils/pdfGenerator';
+
 type FilterType = 'all' | 'sent' | 'received' | 'pending';
 
 export const HistoryScreen: React.FC = () => {
@@ -152,6 +154,12 @@ export const HistoryScreen: React.FC = () => {
     return f;
   };
 
+  const handleDownloadStatement = () => {
+    pdfGenerator.downloadHistoryPdf(filteredTransactions, user.name, 'SA03 •••• 4821', isAr);
+    setDownloadSuccessToast(true);
+    setTimeout(() => setDownloadSuccessToast(false), 3000);
+  };
+
   const handleOpenReceipt = (txn: Transaction) => {
     setSelectedTxn(txn);
     setIsDisputing(false);
@@ -177,6 +185,29 @@ export const HistoryScreen: React.FC = () => {
         onSearchClick={() => setShowSearchInput(!showSearchInput)}
         showSettings
       />
+
+      {/* Download Toast */}
+      {downloadSuccessToast && (
+        <div
+          className="fade-in"
+          style={{
+            margin: '0 20px 14px 20px',
+            backgroundColor: 'var(--brand-green-tint, rgba(127, 232, 127, 0.16))',
+            border: '1px solid var(--brand-green, #7FE87F)',
+            borderRadius: '12px',
+            padding: '10px 16px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            color: 'var(--brand-green, #7FE87F)',
+            fontSize: '12.5px',
+            fontWeight: 800,
+          }}
+        >
+          <CheckCircle2 size={16} />
+          <span>{isAr ? 'تم إنشاء وتحميل كشف الحساب بنجاح (PDF)' : 'Statement generated & downloaded successfully (PDF)'}</span>
+        </div>
+      )}
 
       {showSearchInput && (
         <div style={{ padding: '0 20px', marginBottom: '16px' }}>

@@ -187,33 +187,41 @@ export const RequestMoneyScreen: React.FC<RequestMoneyScreenProps> = ({ initialC
                 />
               </div>
 
-              {/* Quick Amount Chips */}
+              {/* Quick Amount Chips with Toggle Select & Deselect */}
               <div style={{ display: 'flex', gap: '8px', overflowX: 'auto' }}>
-                {[50, 100, 500, 1000].map((quickAmt) => (
-                  <button
-                    key={quickAmt}
-                    type="button"
-                    className="interactive-tap"
-                    onClick={() => {
-                      const current = parseFloat(amountStr) || 0;
-                      setAmountStr((current + quickAmt).toString());
-                    }}
-                    style={{
-                      flex: 1,
-                      padding: '7px 0',
-                      borderRadius: '10px',
-                      backgroundColor: 'var(--color-surface-elevated, #182236)',
-                      border: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-                      color: 'var(--brand-green, #7FE87F)',
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    +{formatSaudiCurrency(quickAmt, language)}
-                  </button>
-                ))}
+                {[50, 100, 500, 1000].map((quickAmt) => {
+                  const valStr = quickAmt.toString();
+                  const isSelected = amountStr === valStr;
+                  return (
+                    <button
+                      key={quickAmt}
+                      type="button"
+                      className="interactive-tap"
+                      onClick={() => {
+                        if (amountStr === valStr) {
+                          setAmountStr('');
+                        } else {
+                          setAmountStr(valStr);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '8px 0',
+                        borderRadius: '10px',
+                        backgroundColor: isSelected ? 'var(--brand-green-tint, rgba(127, 232, 127, 0.2))' : 'var(--color-surface-elevated, #182236)',
+                        border: isSelected ? '2px solid var(--brand-green, #7FE87F)' : '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+                        color: isSelected ? 'var(--brand-green, #7FE87F)' : '#FFFFFF',
+                        fontSize: '12px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        whiteSpace: 'nowrap',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      {formatSaudiCurrency(quickAmt, language)}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

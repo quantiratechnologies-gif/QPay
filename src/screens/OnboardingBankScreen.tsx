@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { ArrowRight, Loader2, CheckCircle2, Landmark, Smartphone, CreditCard, ShieldCheck } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { useApp } from '../state/AppContext';
+import { formatSaudiIban, cleanSaudiIban, formatSaudiMobile } from '../utils/formatters';
 
 interface SaudiBankOption {
   name: string;
@@ -44,12 +45,46 @@ export const OnboardingBankScreen: React.FC = () => {
 
   const handleRequestOtp = () => {
     if (matchMethod === 'iban') {
-      const cleanIban = customIban.replace(/\s+/g, '').toUpperCase();
-      if (!cleanIban.startsWith('SA') || cleanIban.length < 15) {
+      const cleanIban = cleanSaudiIban(customIban);
+      if (!cleanIban || cleanIban.length === 0) {
         setErrorMessage(
           language === 'العربية'
-            ? 'يرجى إدخال رقم آيبان سعودي صحيح يبدأ بـ SA'
-            : 'Please enter a valid Saudi IBAN starting with SA.'
+            ? 'يرجى إدخال رقم آيبان سعودي (SA...)'
+            : 'Please enter a Saudi IBAN (starting with SA).'
+        );
+        return;
+      }
+      if (!cleanIban.startsWith('SA')) {
+        setErrorMessage(
+          language === 'العربية'
+            ? 'قيود البنك المركزي السعودي: يجب أن يبدأ رقم الآيبان بـ SA'
+            : 'SAMA Restriction: Saudi IBAN must start with SA.'
+        );
+        return;
+      }
+      if (cleanIban.length !== 24) {
+        setErrorMessage(
+          language === 'العربية'
+            ? `قيود الآيبان السعودي: يجب أن يتكون الآيبان من ٢٤ خانة بالضبط (المدخل: ${cleanIban.length} خانة)`
+            : `Saudi Banking Restriction: Saudi IBAN must be exactly 24 characters (Entered: ${cleanIban.length}).`
+        );
+        return;
+      }
+      if (!/^SA\d{2}[A-Z0-9]{20}$/.test(cleanIban)) {
+        setErrorMessage(
+          language === 'العربية'
+            ? 'صيغة الآيبان غير مطابقة لمعايير البنوك السعودية'
+            : 'Invalid Saudi IBAN format for selected bank.'
+        );
+        return;
+      }
+    } else if (matchMethod === 'mobile') {
+      const cleanMobile = user.mobile.replace(/\D/g, '');
+      if (!cleanMobile.startsWith('9665') && !cleanMobile.startsWith('05') && !cleanMobile.startsWith('5')) {
+        setErrorMessage(
+          language === 'العربية'
+            ? 'قيود الربط: رقم الجوال يجب أن يكون رقم سعودي مسجل يبدأ بـ 05'
+            : 'Restriction: Mobile number must be a valid Saudi number starting with 05.'
         );
         return;
       }
@@ -336,27 +371,79 @@ export const OnboardingBankScreen: React.FC = () => {
 
                 {matchMethod === 'iban' && (
                   <div style={{ marginTop: '12px' }} className="fade-in">
-                    <input
-                      type="text"
-                      value={customIban}
-                      onChange={(e) => setCustomIban(e.target.value.toUpperCase())}
-                      placeholder="SA03 8000 0000 6080 1012 3456"
-                      maxLength={29}
-                      style={{
-                        width: '100%',
-                        padding: '13px 16px',
-                        borderRadius: '14px',
-                        backgroundColor: '#182236',
-                        border: '1px solid rgba(255, 255, 255, 0.08)',
-                        color: '#FFFFFF',
-                        fontSize: '13.5px',
-                        fontWeight: 700,
-                        fontFamily: 'monospace',
-                        boxSizing: 'border-box',
-                        outline: 'none',
-                      }}
-                      dir="ltr"
-                    />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type="text"
+                        value={customIban}
+                        onChange={(e) => {
+                          setCustomIban(formatSaudiIban(e.target.value));
+                          if (errorMessage) setErrorMessage('');
+                        }}
+                        placeholder="SA03 8000 0000 6080 1012 3456"
+                        maxLength={29}
+                        style={{
+                          width: '100%',
+                          padding: '13px 60px 13px 16px',
+                          borderRadius: '14px',
+                          backgroundColor: '#182236',
+                          border: cleanSaudiIban(customIban).length === 24 ? '1.5px solid #7FE87F' : '1px solid rgba(255, 255, 255, 0.08)',
+                          color: '#FFFFFF',
+                          fontSize: '13.5px',
+                          fontWeight: 700,
+                          fontFamily: 'monospace',
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                          letterSpacing: '0.04em',
+                        }}
+                        dir="ltr"
+                      />
+                      <div
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          color: cleanSaudiIban(customIban).length === 24 ? '#7FE87F' : '#6B7280',
+                          fontFamily: 'monospace',
+                        }}
+                      >
+                        {cleanSaudiIban(customIban).length}/24
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#9CA3AF', marginTop: '6px', marginInlineStart: '4px' }}>
+                      {language === 'العربية' ? 'يبدأ بـ SA متبوعاً بـ 22 خانة' : 'Starts with SA followed by 22 digits/letters'}
+                    </div>
+                  </div>
+                )}
+
+                {matchMethod === 'mobile' && (
+                  <div
+                    style={{
+                      marginTop: '12px',
+                      padding: '12px 14px',
+                      backgroundColor: 'rgba(127, 232, 127, 0.08)',
+                      border: '1px solid rgba(127, 232, 127, 0.25)',
+                      borderRadius: '14px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                    className="fade-in"
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Smartphone size={18} color="#7FE87F" />
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', letterSpacing: '0.02em' }} dir="ltr">
+                          {formatSaudiMobile(user.mobile) || '+966 50 123 4567'}
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: '#7FE87F', fontWeight: 600 }}>
+                          {language === 'العربية' ? 'رقم الجوال المسجل والمعتمد' : 'Registered & Verified Mobile'}
+                        </div>
+                      </div>
+                    </div>
+                    <CheckCircle2 size={18} color="#7FE87F" />
                   </div>
                 )}
               </div>

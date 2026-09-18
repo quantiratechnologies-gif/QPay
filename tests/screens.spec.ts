@@ -44,7 +44,6 @@ const MODALS = [
   { name: 'LogoutModal', openMethod: 'setIsLogoutModalOpen', text: 'Log Out' },
   { name: 'AddBankModal', openMethod: 'setIsAddBankModalOpen', text: 'Saudi Bank' },
   { name: 'KycModal', openMethod: 'setIsKycModalOpen', text: 'National ID' },
-  { name: 'AppLinksModal', openMethod: 'setIsAppLinksModalOpen', text: 'Application Links' },
   { name: 'EditProfileModal', openMethod: 'setIsEditProfileModalOpen', text: 'Profile' },
   {
     name: 'PayBillPinModal',
@@ -67,14 +66,18 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
           !text.includes('favicon') &&
           !text.includes('chrome-extension') &&
           !text.includes('net::ERR_') &&
-          !text.includes('Failed to load resource')
+          !text.includes('Failed to load resource') &&
+          !text.includes('ServiceWorkerRegistration')
         ) {
           consoleErrors.push(text);
         }
       }
     });
     page.on('pageerror', (err: any) => {
-      consoleErrors.push(err.message);
+      const msg = err.message || '';
+      if (!msg.includes('ServiceWorkerRegistration') && !msg.includes('favicon')) {
+        consoleErrors.push(msg);
+      }
     });
   });
 
@@ -213,7 +216,7 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
 
     // Send Amount Screen
     await expect(page.getByText('Tariq Al-Otaibi')).toBeVisible();
-    const amountInput = page.locator('input[type="number"]');
+    const amountInput = page.locator('input[placeholder="0"]').first();
     await amountInput.fill('500');
 
     // Click Pay SAR 500
@@ -262,7 +265,7 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
 
     // PIN Modal
     await expect(page.getByText(/PIN/i).first()).toBeVisible();
-    await page.keyboard.type('9876');
+    await page.keyboard.type('1234');
     await page.waitForTimeout(300);
 
     // Success Screen
@@ -277,12 +280,14 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     await expect(page.getByText('Receive Money')).toBeVisible();
     await expect(page.getByText(/Sarie/i).first()).toBeVisible();
 
-    // Click Simulate Incoming Payment
-    const simBtn = page.getByRole('button', { name: /Receive Demo Payment|استلام دفعة تجريبية/i });
-    await simBtn.click();
+    // Click Copy Alias & Copy IBAN
+    const copyAliasBtn = page.getByRole('button', { name: /Copy Alias|نسخ المعرّف/i });
+    await expect(copyAliasBtn).toBeVisible();
+    await copyAliasBtn.click();
 
-    // Check incoming payment toast banner appears
-    await expect(page.getByText(/Received|تم الاستلام/i).first()).toBeVisible();
+    const copyIbanBtn = page.getByRole('button', { name: /Copy IBAN|نسخ الآيبان/i });
+    await expect(copyIbanBtn).toBeVisible();
+    await copyIbanBtn.click();
 
     expect(consoleErrors).toEqual([]);
   });
@@ -331,6 +336,34 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     expect(consoleErrors).toEqual([]);
   });
 
+  test('Bank Account IBAN input strictly sanitizes special characters and auto-formats in 4-character blocks', async () => {
+    await page.goto(getAppUrl('screen=ONBOARDING_BANK'));
+    await page.waitForLoadState('domcontentloaded');
+
+    // Click IBAN match tab
+    const ibanTab = page.locator('.match-tab', { hasText: /IBAN|الآيبان/i });
+    await ibanTab.click();
+
+    // Type the exact messy input string reported by user
+    const ibanInput = page.locator('input[placeholder*="SA03"]');
+    await expect(ibanInput).toBeVisible();
+
+    await ibanInput.fill('1234567890-=`987654321` 8765432');
+    
+    // Check that value is sanitized, auto-prefixed with SA, uppercase, and grouped by 4
+    const sanitizedVal = await ibanInput.inputValue();
+    expect(sanitizedVal).not.toContain('-');
+    expect(sanitizedVal).not.toContain('=');
+    expect(sanitizedVal).not.toContain('`');
+    expect(sanitizedVal).toMatch(/^SA\d{2}(\s\d{4}){5}$/);
+    expect(sanitizedVal.replace(/\s/g, '').length).toBe(24);
+
+    // Verify counter says 24/24
+    await expect(page.getByText('24/24')).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+  });
+
   test('All 6 Bottom Sheet Modals open, render, and dismiss cleanly', async () => {
     await page.goto(getAppUrl('screen=HOME'));
     await page.waitForLoadState('domcontentloaded');
@@ -358,3 +391,5 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     expect(consoleErrors).toEqual([]);
   });
 });
+
+

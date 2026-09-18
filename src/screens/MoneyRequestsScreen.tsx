@@ -85,7 +85,7 @@ export const MoneyRequestsScreen: React.FC = () => {
   };
 
   return (
-    <div className="fade-in" style={{ backgroundColor: '#080c14', minHeight: '100vh', paddingBottom: '32px', color: '#FFFFFF' }}>
+    <div className="fade-in" style={{ backgroundColor: '#080c14', minHeight: '100vh', paddingBottom: '96px', color: '#FFFFFF' }}>
       <AppHeader title={translateText('Money Requests', language)} showBack showSettings={false} />
 
       <div style={{ padding: '20px' }}>
@@ -296,6 +296,8 @@ export const MoneyRequestsScreen: React.FC = () => {
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
+                  type="button"
+                  onClick={() => handleDeclineRequest(req)}
                   className="interactive-tap"
                   onClick={() => handleDecline(req.id, req.requesterName)}
                   style={{
@@ -312,6 +314,7 @@ export const MoneyRequestsScreen: React.FC = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '4px',
+                    transition: 'all 0.15s ease',
                   }}
                 >
                   <X size={16} /> {translateText('Decline', language)}
@@ -576,4 +579,3 @@ export const MoneyRequestsScreen: React.FC = () => {
     </div>
   );
 };
-

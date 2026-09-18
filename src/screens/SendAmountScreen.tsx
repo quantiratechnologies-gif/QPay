@@ -179,7 +179,7 @@ export const SendAmountScreen: React.FC = () => {
             />
           </div>
 
-          {/* Quick Amount Chips */}
+          {/* Quick Amount Chips with Toggle Select & Deselect */}
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '18px' }}>
             {['50', '100', '500', '1000', '2000'].map((val) => {
               const valNum = Number(val);
@@ -192,13 +192,14 @@ export const SendAmountScreen: React.FC = () => {
                   onClick={() => handleChipClick(valNum)}
                   className="interactive-tap"
                   style={{
-                    backgroundColor: isSelected ? 'var(--brand-green-tint)' : 'var(--color-surface-elevated)',
-                    border: isSelected ? '1.5px solid var(--brand-green)' : '1px solid var(--color-border)',
-                    color: isSelected ? 'var(--brand-green)' : '#FFFFFF',
+                    backgroundColor: isSelected ? 'var(--brand-green-tint, rgba(127, 232, 127, 0.2))' : 'var(--color-surface-elevated, #182236)',
+                    border: isSelected ? '2px solid var(--brand-green, #7FE87F)' : '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+                    color: isSelected ? 'var(--brand-green, #7FE87F)' : '#FFFFFF',
+                    boxShadow: isSelected ? '0 0 12px rgba(127, 232, 127, 0.25)' : 'none',
                     borderRadius: '20px',
                     padding: '8px 16px',
                     fontSize: '13px',
-                    fontWeight: 700,
+                    fontWeight: 800,
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                   }}

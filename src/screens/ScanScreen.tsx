@@ -209,6 +209,58 @@ export const ScanScreen: React.FC = () => {
     }
   };
 
+  const [unsupportedQrError, setUnsupportedQrError] = useState<string | null>(null);
+
+  // Validate QR payload before entering payment flow
+  const validateAndProcessQr = (payload: string, fallbackContact?: any, amount?: number) => {
+    setUnsupportedQrError(null);
+
+    // Check if valid Sarie / QPay payment QR payload
+    const isValidPaymentScheme =
+      payload.startsWith('sarie://pay') ||
+      payload.startsWith('upi://pay') ||
+      payload.includes('@sarie') ||
+      payload.startsWith('QTPAY:');
+
+    if (!isValidPaymentScheme) {
+      setUnsupportedQrError(
+        language === 'العربية'
+          ? 'رمز QR غير مدعوم: نقبل فقط رموز الدفع المعتمدة عبر كيو تي باي ونظام سريع ومدى.'
+          : 'Unsupported QR Code: Only valid QPay, Sarie, and mada payment QR codes are supported.'
+      );
+      if (navigator.vibrate) {
+        try { navigator.vibrate([100, 50, 100]); } catch {}
+      }
+      setTimeout(() => setUnsupportedQrError(null), 4000);
+      return;
+    }
+
+    // Extract contact and amount if present
+    let targetContact = fallbackContact;
+    let targetAmount = amount;
+
+    if (payload.includes('@sarie')) {
+      const parts = payload.match(/([a-zA-Z0-9._-]+@sarie)/);
+      if (parts) {
+        const upi = parts[1];
+        const existing = contacts.find((c) => c.upiId.toLowerCase() === upi.toLowerCase());
+        targetContact = existing || {
+          id: `qr-${Date.now()}`,
+          name: upi.split('@')[0].replace(/[._]/g, ' ').toUpperCase(),
+          upiId: upi,
+          avatarInitials: upi.substring(0, 2).toUpperCase(),
+        };
+      }
+    }
+
+    if (payload.includes('am=')) {
+      const amtMatch = payload.match(/am=([0-9.]+)/);
+      if (amtMatch) targetAmount = parseFloat(amtMatch[1]);
+    }
+
+    handleScanSuccess(targetContact || contacts[0], targetAmount);
+  };
+
   // Trigger successful scan transition
   const handleScanSuccess = (contact: any, amount?: number) => {
     setIsScanning(false);
@@ -582,6 +634,31 @@ export const ScanScreen: React.FC = () => {
             : t('scan.align_qr', 'Point at any QR code to pay')}
         </p>
 
+        {/* Unsupported QR Rejection Banner */}
+        {unsupportedQrError && (
+          <div
+            className="fade-in"
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+              border: '1.5px solid #EF4444',
+              borderRadius: '14px',
+              padding: '12px 16px',
+              margin: '12px 20px 0 20px',
+              zIndex: 25,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#FFFFFF',
+              fontSize: '12.5px',
+              fontWeight: 700,
+              boxShadow: '0 8px 24px rgba(239, 68, 68, 0.25)',
+            }}
+          >
+            <X size={18} color="#EF4444" style={{ flexShrink: 0 }} />
+            <span>{unsupportedQrError}</span>
+          </div>
+        )}
+
         {/* Quick Sample Presets for Instant Demo Scanning */}
         <div
           style={{
@@ -596,7 +673,8 @@ export const ScanScreen: React.FC = () => {
         >
           <button
             onClick={() =>
-              handleScanSuccess(
+              validateAndProcessQr(
+                'sarie://pay?pa=star@sarie&pn=Star%20Supermarket&am=280',
                 { id: 'm-1', name: 'Star Supermarket', upiId: 'star@sarie', avatarInitials: 'SS' },
                 280
               )
@@ -621,7 +699,8 @@ export const ScanScreen: React.FC = () => {
 
           <button
             onClick={() =>
-              handleScanSuccess(
+              validateAndProcessQr(
+                'sarie://pay?pa=halfmillion@sarie&pn=Half%20Million&am=180',
                 { id: 'm-2', name: 'Half Million Coffee', upiId: 'halfmillion@sarie', avatarInitials: 'HM' },
                 180
               )
@@ -646,19 +725,19 @@ export const ScanScreen: React.FC = () => {
 
           <button
             onClick={() =>
-              handleScanSuccess(
-                { id: 'm-3', name: 'SEC Electricity', upiId: 'sec@sarie', avatarInitials: 'SEC' },
-                100
+              validateAndProcessQr(
+                'https://random-unsupported-website.com/not-a-payment-qr',
+                null
               )
             }
             style={{
-              backgroundColor: 'var(--color-surface-elevated, #182236)',
-              border: '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+              backgroundColor: 'rgba(239, 68, 68, 0.15)',
+              border: '1px solid rgba(239, 68, 68, 0.3)',
               borderRadius: designSystem.radii.sm,
               padding: '6px 12px',
-              color: '#FFFFFF',
+              color: '#EF4444',
               fontSize: '11px',
-              fontWeight: '600',
+              fontWeight: '700',
               display: 'flex',
               alignItems: 'center',
               gap: '6px',
@@ -666,7 +745,7 @@ export const ScanScreen: React.FC = () => {
               whiteSpace: 'nowrap',
             }}
           >
-            <Train size={13} color="var(--brand-green, #7FE87F)" /> {language === 'العربية' ? 'فاتورة الكهرباء' : 'SEC Electricity'}
+            <X size={13} color="#EF4444" /> {language === 'العربية' ? 'اختبار رمز غير مدعوم' : 'Test Invalid QR'}
           </button>
         </div>
       </div>
