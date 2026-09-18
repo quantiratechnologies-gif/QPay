@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar, Upload, FileText, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar, Upload, FileText, RefreshCw, Building2 } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { SamaLogo } from '../components/SamaLogo';
 import { useApp } from '../state/AppContext';

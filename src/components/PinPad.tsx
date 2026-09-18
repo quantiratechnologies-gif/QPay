@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../state/AppContext';
 import { toArabicNumerals } from '../utils/i18n';
 
