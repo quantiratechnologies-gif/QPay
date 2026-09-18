@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check, X, ArrowDownLeft, Users, Plus, Receipt, CheckCircle2 } from 'lucide-react';
+import { Check, X, ArrowDownLeft, Users, Receipt, CheckCircle2 } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useApp } from '../state/AppContext';
@@ -14,7 +14,6 @@ export const MoneyRequestsScreen: React.FC = () => {
   const [totalBill, setTotalBill] = useState('300');
   const [billDescription, setBillDescription] = useState('Dinner split');
   const [selectedContacts, setSelectedContacts] = useState<string[]>(['c1', 'c2']);
-  const [customParticipant, setCustomParticipant] = useState('');
   const [splitSuccess, setSplitSuccess] = useState(false);
 
   const showToast = (msg: string) => {
@@ -297,9 +296,8 @@ export const MoneyRequestsScreen: React.FC = () => {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button
                   type="button"
-                  onClick={() => handleDeclineRequest(req)}
-                  className="interactive-tap"
                   onClick={() => handleDecline(req.id, req.requesterName)}
+                  className="interactive-tap"
                   style={{
                     flex: 1,
                     backgroundColor: 'var(--color-surface-elevated, #182236)',

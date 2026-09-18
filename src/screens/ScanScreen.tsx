@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Flashlight, Image as ImageIcon, CheckCircle, Zap, Store, Coffee, Train, AlertCircle, Edit3 } from 'lucide-react';
+import { X, Flashlight, Image as ImageIcon, CheckCircle, Zap, Store, Coffee, AlertCircle, Edit3 } from 'lucide-react';
 import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
 

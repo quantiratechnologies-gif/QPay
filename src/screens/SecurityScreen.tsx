@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { Smartphone, Monitor, ShieldCheck, LogOut, Lock, Sliders, CheckCircle2, X } from 'lucide-react';
+import { Smartphone, Monitor, ShieldCheck, LogOut, Lock, Sliders, CheckCircle2, X, Fingerprint, ChevronRight } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { useApp } from '../state/AppContext';
 import { formatLocalizedNumber, translateText, formatSaudiCurrency } from '../utils/i18n';
 
 export const SecurityScreen: React.FC = () => {
-  const { deviceSessions, terminateSession, language, navigateTo } = useApp();
+  const { deviceSessions, terminateSession, language, navigateTo, isRtl } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
 
   const [biometricsEnabled, setBiometricsEnabled] = useState<boolean>(() => {
@@ -112,8 +112,8 @@ export const SecurityScreen: React.FC = () => {
                 width: '48px',
                 height: '48px',
                 borderRadius: '14px',
-                backgroundColor: isBiometricsEnabled ? 'rgba(127, 232, 127, 0.15)' : 'rgba(255, 255, 255, 0.06)',
-                color: isBiometricsEnabled ? '#7FE87F' : '#8E9BAE',
+                backgroundColor: biometricsEnabled ? 'rgba(127, 232, 127, 0.15)' : 'rgba(255, 255, 255, 0.06)',
+                color: biometricsEnabled ? '#7FE87F' : '#8E9BAE',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -139,7 +139,7 @@ export const SecurityScreen: React.FC = () => {
           <button
             type="button"
             role="switch"
-            aria-checked={isBiometricsEnabled}
+            aria-checked={biometricsEnabled}
             aria-label={isAr ? 'تفعيل البصمة' : 'Toggle Biometrics'}
             onClick={handleToggleBiometrics}
             className="interactive-tap"
@@ -147,13 +147,13 @@ export const SecurityScreen: React.FC = () => {
               width: '54px',
               height: '30px',
               borderRadius: '15px',
-              backgroundColor: isBiometricsEnabled ? '#7FE87F' : '#2A344A',
+              backgroundColor: biometricsEnabled ? '#7FE87F' : '#2A344A',
               border: 'none',
               padding: '3px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isBiometricsEnabled ? (isRtl ? 'flex-start' : 'flex-end') : (isRtl ? 'flex-end' : 'flex-start'),
+              justifyContent: biometricsEnabled ? (isRtl ? 'flex-start' : 'flex-end') : (isRtl ? 'flex-end' : 'flex-start'),
               transition: 'background-color 0.25s ease',
               flexShrink: 0,
             }}
@@ -163,7 +163,7 @@ export const SecurityScreen: React.FC = () => {
                 width: '24px',
                 height: '24px',
                 borderRadius: '50%',
-                backgroundColor: isBiometricsEnabled ? '#080C14' : '#8E9BAE',
+                backgroundColor: biometricsEnabled ? '#080C14' : '#8E9BAE',
                 boxShadow: '0 2px 4px rgba(0,0,0,0.4)',
                 transition: 'all 0.25s ease',
               }}

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar, Upload, FileText, RefreshCw, Building2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, CheckCircle2, UserCheck, ArrowRight, Loader2, Calendar, Upload, RefreshCw, Building2 } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { SamaLogo } from '../components/SamaLogo';
 import { useApp } from '../state/AppContext';
@@ -18,7 +18,6 @@ export const KycModal: React.FC = () => {
   } = useApp();
 
   const isAr = language === 'العربية';
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<KycStep>('FORM');
   const [docType, setDocType] = useState<string>('national_id');
@@ -43,32 +42,6 @@ export const KycModal: React.FC = () => {
     setIsKycModalOpen(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const sizeKb = Math.round(file.size / 1024);
-    const sizeStr = sizeKb > 1024 ? `${(sizeKb / 1024).toFixed(1)} MB` : `${sizeKb} KB`;
-
-    const reader = new FileReader();
-    reader.onload = (uploadEvent) => {
-      setSelectedFile({
-        name: file.name,
-        size: sizeStr,
-        previewUrl: uploadEvent.target?.result as string,
-      });
-    };
-    reader.readAsDataURL(file);
-  };
-
-  const handleUseSampleDoc = () => {
-    setSelectedFile({
-      name: docType === 'iqama' ? 'Iqama_Digital_Copy_2026.pdf' : 'National_ID_Saudi_2026.jpg',
-      size: '1.2 MB',
-      previewUrl: 'https://images.unsplash.com/photo-1563986768609-322da13575f3?w=300&auto=format&fit=crop&q=60',
-    });
-  };
-
   const handleVerify = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
@@ -82,21 +55,12 @@ export const KycModal: React.FC = () => {
       return;
     }
 
-    if (!selectedFile) {
-      setErrorMsg(
-        isAr
-          ? 'يرجى إرفاق صورة الهوية أو المستند لإتمام التحقق (Re-KYC).'
-          : 'Please attach a copy of your National ID or Iqama document to continue.'
-      );
-      return;
-    }
-
     setErrorMsg('');
     setStep('VERIFYING');
 
     setTimeout(async () => {
       await submitReKyc({
-        frontDocUrl: selectedFile.previewUrl,
+        frontDocUrl: attachedDocName || 'National_ID_Scan.pdf',
         docType,
         nationalId: cleanId,
         dob,

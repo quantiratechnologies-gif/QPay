@@ -13,6 +13,8 @@ export interface BankAccount {
   bankName: string;
   accountType: string;
   accountNumberMasked: string;
+  iban?: string;
+  accountNumber?: string;
   isPrimary: boolean;
   balance: number;
   showBalance?: boolean;

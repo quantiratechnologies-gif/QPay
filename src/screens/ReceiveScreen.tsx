@@ -3,19 +3,22 @@ import { Copy, CheckCircle2, Share2, Landmark, Zap, ShieldCheck } from 'lucide-r
 import { AppHeader } from '../components/AppHeader';
 import { QRCodeView } from '../components/QRCodeView';
 import { PrimaryButton } from '../components/PrimaryButton';
+import { PaymentPartnerLogo } from '../components/PaymentPartnerLogo';
 import { useApp } from '../state/AppContext';
 import { qrService } from '../services/qrService';
+import { formatCurrency } from '../utils/formatters';
 
 export const ReceiveScreen: React.FC = () => {
-  const { user, navigateTo, receiveMoney, bankAccounts, t, language, isRtl } = useApp();
+  const { user, bankAccounts, t, language } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
   const [copied, setCopied] = useState(false);
   const [copiedIban, setCopiedIban] = useState(false);
-  const [customAmount, setCustomAmount] = useState<string>('');
-  const [receivedToast, setReceivedToast] = useState<{ show: boolean; amount: number; sender: string } | null>(null);
+  const [customAmount] = useState<string>('');
 
   const primaryBank = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
-  const fullIban = 'SA03 8000 0000 6080 1014 4821';
+  const primaryBankName = primaryBank?.bankName || 'Al Rajhi Bank';
+  const fullIban = primaryBank?.iban || primaryBank?.accountNumberMasked || 'SA03 8000 0000 6080 1014 4821';
+  const formattedIban = fullIban;
   const sarieAlias = user.upiId || '966501234567@sarie';
   const numAmount = parseFloat(customAmount) || 0;
   const upiQrString = qrService.getUpiQrString(sarieAlias, user.name, numAmount > 0 ? numAmount : undefined);

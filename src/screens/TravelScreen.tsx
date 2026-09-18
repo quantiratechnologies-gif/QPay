@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plane, Car, Hotel, Compass, X, Check, Copy, CheckCheck } from 'lucide-react';
+import { Plane, Car, Hotel, Compass, X, Check, Copy, CheckCheck, Calendar, Users, MapPin, ChevronRight, ShieldCheck } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
@@ -25,10 +25,14 @@ export interface TravelItem {
 export const TravelScreen: React.FC = () => {
   const { openPinModal, completePayment, language, isRtl } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
-  const [selectedBooking, setSelectedBooking] = useState<TravelBooking | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<TravelCategory>('flights');
+  const [activeItem, setActiveItem] = useState<TravelItem | null>(null);
+  const [bookingStep, setBookingStep] = useState<'details' | 'review'>('details');
+  const [travelDate, setTravelDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [guestCount, setGuestCount] = useState<number>(1);
   const [copiedPnr, setCopiedPnr] = useState(false);
-  const [confirmedTicket, setConfirmedTicket] = useState<{
-    title: string;
+  const [confirmedBooking, setConfirmedBooking] = useState<{
+    item: TravelItem;
     pnr: string;
     totalPaid: number;
     utr: string;
@@ -609,10 +613,10 @@ export const TravelScreen: React.FC = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                 <span style={{ fontSize: '12px', color: '#8E9BAE' }}>{translateText('Booking Reference (PNR)', language)}</span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--brand-green, #7FE87F)', fontFamily: 'monospace' }}>{confirmedTicket.pnr}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--brand-green, #7FE87F)', fontFamily: 'monospace' }}>{confirmedBooking.pnr}</span>
                   <button
                     onClick={() => {
-                      navigator.clipboard?.writeText(confirmedTicket.pnr);
+                      navigator.clipboard?.writeText(confirmedBooking.pnr);
                       setCopiedPnr(true);
                       setTimeout(() => setCopiedPnr(false), 2000);
                     }}

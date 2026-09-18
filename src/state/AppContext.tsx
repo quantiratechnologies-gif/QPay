@@ -120,6 +120,18 @@ interface AppContextType {
   terminateSession: (sessionId: string) => void;
   addMoneyRequest: (req: { name?: string; requesterName?: string; upiId: string; amount: number; note?: string; date?: string; status?: 'pending' | 'accepted' | 'declined' }) => void;
 
+  // Split Expenses & Transfer Limits
+  updateTransferLimits: (limits: Partial<TransferLimits>) => void;
+  isBiometricsEnabled: boolean;
+  setIsBiometricsEnabled: (enabled: boolean) => void;
+  authenticateBiometrics: () => Promise<boolean>;
+  createSplitExpense: (params: {
+    title: string;
+    totalAmount: number;
+    members: { contact: Contact; amount: number }[];
+  }) => SplitExpense;
+  markSplitMemberPaid: (expenseId: string, memberId: string) => void;
+
   // MPIN & OTP Security Controls
   userPin: string;
   setUserPin: (pin: string) => void;
@@ -153,8 +165,6 @@ const INITIAL_SESSIONS: DeviceSession[] = [
 ];
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const isCompletedOnboarding = typeof window !== 'undefined' && localStorage.getItem('hasCompletedOnboarding') === 'true';
-
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -986,6 +996,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         moneyRequests,
         splitExpenses,
         transferLimits,
+        updateTransferLimits,
+        isBiometricsEnabled,
+        setIsBiometricsEnabled,
+        authenticateBiometrics,
+        createSplitExpense,
+        markSplitMemberPaid,
         deviceSessions,
         lastTransaction,
         electricityBill,

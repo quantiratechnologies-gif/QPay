@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../state/AppContext';
 import { toArabicNumerals } from '../utils/i18n';
 
@@ -17,6 +17,7 @@ export const PinPad: React.FC<PinPadProps> = ({
   successMessage,
   customTitle,
 }) => {
+  const { language } = useApp();
   const [pin, setPin] = useState<string>('');
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [localError, setLocalError] = useState<string | undefined>(error);

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, X, Receipt, ShieldAlert, CheckCircle2, Clock, AlertTriangle, ArrowRight, Download, FileText } from 'lucide-react';
+import { Search, X, Receipt, ShieldAlert, CheckCircle2, Clock, AlertTriangle, ArrowRight, Download } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { TransactionRow } from '../components/TransactionRow';
 import { BottomSheet } from '../components/BottomSheet';
@@ -7,8 +7,6 @@ import { SamaLogo } from '../components/SamaLogo';
 import { useApp } from '../state/AppContext';
 import { formatCurrency } from '../utils/formatters';
 import type { Transaction } from '../types';
-
-import { pdfGenerator } from '../utils/pdfGenerator';
 
 type FilterType = 'all' | 'sent' | 'received' | 'pending';
 
@@ -61,7 +59,7 @@ export const HistoryScreen: React.FC = () => {
 
   const handleDownloadStatement = () => {
     const primaryAccount = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
-    const iban = primaryAccount?.iban || 'SA03 8000 0000 6080 1014 4821';
+    const iban = primaryAccount?.iban || primaryAccount?.accountNumberMasked || 'SA03 8000 0000 6080 1014 4821';
     const bankName = primaryAccount?.bankName || 'Al Rajhi Bank';
     const dateStr = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
@@ -111,7 +109,7 @@ export const HistoryScreen: React.FC = () => {
   <div class="grid">
     <div>
       <div><strong>Account Holder:</strong> ${user?.name || 'Authorized Customer'}</div>
-      <div><strong>Linked Mobile:</strong> ${user?.phone || '+966 50 123 4567'}</div>
+      <div><strong>Linked Mobile:</strong> ${user?.mobile || '+966 50 123 4567'}</div>
     </div>
     <div>
       <div><strong>Primary Bank:</strong> ${bankName}</div>
@@ -181,7 +179,7 @@ export const HistoryScreen: React.FC = () => {
       />
 
       {/* Download Toast */}
-      {downloadSuccessToast && (
+      {statementSuccess && (
         <div
           className="fade-in"
           style={{

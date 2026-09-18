@@ -178,7 +178,6 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               justifyContent: 'center',
               gap: '2px',
               maxWidth: '100%',
-              gap: '2px',
             }}
           >
             <AlphPayLogo variant="header" size={20} themeMode="dark" />

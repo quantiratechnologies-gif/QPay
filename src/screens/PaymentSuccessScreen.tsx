@@ -8,12 +8,9 @@ import { useApp } from '../state/AppContext';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import type { Transaction } from '../types';
 
-import { receiptGenerator } from '../utils/receiptGenerator';
-
 export const PaymentSuccessScreen: React.FC = () => {
   const { screenParams, lastTransaction, navigateTo, t, language, isRtl } = useApp();
   const [downloadMsg, setDownloadMsg] = useState(false);
-  const [isProcessingReceipt, setIsProcessingReceipt] = useState(false);
 
   const txn: Transaction = screenParams.transaction || lastTransaction || {
     id: 'QT98472910482',
@@ -27,7 +24,6 @@ export const PaymentSuccessScreen: React.FC = () => {
   };
 
   const displayTitle = t(txn.title, txn.title);
-  const isAr = language === 'العربية' || language === 'ar';
 
   const handleDone = () => {
     navigateTo('HOME');
@@ -188,10 +184,10 @@ export const PaymentSuccessScreen: React.FC = () => {
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '12px', marginBottom: '14px' }}>
-          <SecondaryButton onClick={handleShare} disabled={isProcessingReceipt}>
+          <SecondaryButton onClick={handleShare}>
             <Share2 size={16} /> {t('btn.share', 'Share')}
           </SecondaryButton>
-          <SecondaryButton onClick={handleDownloadReceipt} disabled={isProcessingReceipt}>
+          <SecondaryButton onClick={handleDownloadReceipt}>
             <FileText size={16} /> {language === 'العربية' ? 'الإيصال' : 'Receipt'}
           </SecondaryButton>
         </div>
