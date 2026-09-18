@@ -65,30 +65,8 @@ export const SecurityScreen: React.FC = () => {
         onBack={() => navigateTo('PROFILE')}
       />
 
-      <div style={{ padding: '20px' }}>
-        {/* Toast Notification */}
-        {toastMsg && (
-          <div
-            style={{
-              backgroundColor: 'var(--brand-green, #7FE87F)',
-              color: 'var(--brand-green-ink, #080C14)',
-              padding: '12px 16px',
-              borderRadius: '12px',
-              fontWeight: 800,
-              fontSize: '13px',
-              marginBottom: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              animation: 'fadeIn 0.2s ease',
-            }}
-          >
-            <CheckCircle2 size={16} />
-            <span>{toastMsg}</span>
-          </div>
-        )}
-
-        {/* Biometrics / Security Status HUD Card */}
+      {/* Toast Notification */}
+      {toastMsg && (
         <div
           style={{
             position: 'fixed',
@@ -110,7 +88,7 @@ export const SecurityScreen: React.FC = () => {
           }}
         >
           <CheckCircle2 size={16} color="#7FE87F" />
-          <span>{toastMessage}</span>
+          <span>{toastMsg}</span>
         </div>
       )}
 

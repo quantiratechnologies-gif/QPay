@@ -8,6 +8,7 @@ import { qrService } from '../services/qrService';
 
 export const ReceiveScreen: React.FC = () => {
   const { user, navigateTo, receiveMoney, bankAccounts, t, language, isRtl } = useApp();
+  const isAr = language === 'العربية' || language === 'ar';
   const [copied, setCopied] = useState(false);
   const [copiedIban, setCopiedIban] = useState(false);
   const [customAmount, setCustomAmount] = useState<string>('');
@@ -15,22 +16,15 @@ export const ReceiveScreen: React.FC = () => {
 
   const primaryBank = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
   const fullIban = 'SA03 8000 0000 6080 1014 4821';
+  const sarieAlias = user.upiId || '966501234567@sarie';
   const numAmount = parseFloat(customAmount) || 0;
-  const upiQrString = qrService.getUpiQrString(user.upiId, user.name, numAmount > 0 ? numAmount : undefined);
+  const upiQrString = qrService.getUpiQrString(sarieAlias, user.name, numAmount > 0 ? numAmount : undefined);
   const displayName = t(user.name, user.name);
 
-  const upiQrString = qrService.getUpiQrString(sarieAlias, user.name);
-
-  const handleCopyAlias = () => {
+  const handleCopy = () => {
     navigator.clipboard.writeText(sarieAlias);
-    setCopiedAlias(true);
-    setTimeout(() => setCopiedAlias(false), 2000);
-  };
-
-  const handleCopyIban = () => {
-    navigator.clipboard.writeText(fullIban);
-    setCopiedIban(true);
-    setTimeout(() => setCopiedIban(false), 2000);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleCopyIban = () => {
@@ -44,7 +38,7 @@ export const ReceiveScreen: React.FC = () => {
       navigator
         .share({
           title: 'QTPay Sarie & IBAN Details',
-          text: `${isAr ? 'بيانات التحويل عبر سريع والآيبان:' : 'Sarie & IBAN Payment Details:'}\n${isAr ? 'الاسم:' : 'Name:'} ${displayName}\n${isAr ? 'معرّف سريع:' : 'SARIE Alias:'} ${sarieAlias}\n${isAr ? 'الآيبان:' : 'IBAN:'} ${formattedIban}`,
+          text: `${isAr ? 'بيانات التحويل عبر سريع والآيبان:' : 'Sarie & IBAN Payment Details:'}\n${isAr ? 'الاسم:' : 'Name:'} ${displayName}\n${isAr ? 'معرّف سريع:' : 'SARIE Alias:'} ${sarieAlias}\n${isAr ? 'الآيبان:' : 'IBAN:'} ${fullIban}`,
         })
         .catch(() => {});
     } else {

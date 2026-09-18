@@ -24,6 +24,41 @@ export const HistoryScreen: React.FC = () => {
   const [disputeSubmitted, setDisputeSubmitted] = useState(false);
   const [statementSuccess, setStatementSuccess] = useState(false);
 
+  const filteredTransactions = transactions.filter((t) => {
+    const matchesFilter =
+      filter === 'all'
+        ? true
+        : filter === 'sent'
+        ? t.type === 'sent'
+        : filter === 'received'
+        ? t.type === 'received'
+        : t.type === 'pending';
+
+    const matchesSearch =
+      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (t.subTitle && t.subTitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      t.utr.toLowerCase().includes(searchQuery.toLowerCase());
+
+    return matchesFilter && matchesSearch;
+  });
+
+  const groupedByDate: Record<string, typeof transactions> = {};
+  filteredTransactions.forEach((t) => {
+    const key = t.date || 'TODAY';
+    if (!groupedByDate[key]) groupedByDate[key] = [];
+    groupedByDate[key].push(t);
+  });
+
+  const getFilterLabel = (f: FilterType) => {
+    if (isAr) {
+      if (f === 'all') return 'الكل';
+      if (f === 'sent') return 'المدفوعات';
+      if (f === 'received') return 'المستلمة';
+      if (f === 'pending') return 'قيد الانتظار';
+    }
+    return f;
+  };
+
   const handleDownloadStatement = () => {
     const primaryAccount = bankAccounts.find((b) => b.isPrimary) || bankAccounts[0];
     const iban = primaryAccount?.iban || 'SA03 8000 0000 6080 1014 4821';
@@ -117,47 +152,6 @@ export const HistoryScreen: React.FC = () => {
 
     setStatementSuccess(true);
     setTimeout(() => setStatementSuccess(false), 3000);
-  };
-
-  const filteredTransactions = transactions.filter((t) => {
-    const matchesFilter =
-      filter === 'all'
-        ? true
-        : filter === 'sent'
-        ? t.type === 'sent'
-        : filter === 'received'
-        ? t.type === 'received'
-        : t.type === 'pending';
-
-    const matchesSearch =
-      t.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (t.subTitle && t.subTitle.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      t.utr.toLowerCase().includes(searchQuery.toLowerCase());
-
-    return matchesFilter && matchesSearch;
-  });
-
-  const groupedByDate: Record<string, typeof transactions> = {};
-  filteredTransactions.forEach((t) => {
-    const key = t.date || 'TODAY';
-    if (!groupedByDate[key]) groupedByDate[key] = [];
-    groupedByDate[key].push(t);
-  });
-
-  const getFilterLabel = (f: FilterType) => {
-    if (isAr) {
-      if (f === 'all') return 'الكل';
-      if (f === 'sent') return 'المدفوعات';
-      if (f === 'received') return 'المستلمة';
-      if (f === 'pending') return 'قيد الانتظار';
-    }
-    return f;
-  };
-
-  const handleDownloadStatement = () => {
-    pdfGenerator.downloadHistoryPdf(filteredTransactions, user.name, 'SA03 •••• 4821', isAr);
-    setDownloadSuccessToast(true);
-    setTimeout(() => setDownloadSuccessToast(false), 3000);
   };
 
   const handleOpenReceipt = (txn: Transaction) => {

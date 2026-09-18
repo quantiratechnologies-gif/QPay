@@ -17,22 +17,34 @@ export const PinPad: React.FC<PinPadProps> = ({
   successMessage,
   customTitle,
 }) => {
-  const { language } = useApp();
   const [pin, setPin] = useState<string>('');
   const [isShaking, setIsShaking] = useState<boolean>(false);
+  const [localError, setLocalError] = useState<string | undefined>(error);
+  const resetTimerRef = React.useRef<any>(null);
 
   useEffect(() => {
+    setLocalError(error);
     if (error) {
       setIsShaking(true);
-      const timer = setTimeout(() => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = setTimeout(() => {
         setIsShaking(false);
         setPin('');
       }, 500);
-      return () => clearTimeout(timer);
     }
+    return () => {
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    };
   }, [error]);
 
   const handleKeyPress = (num: string) => {
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+      setIsShaking(false);
+    }
+    setLocalError(undefined);
+
     if (pin.length < length) {
       const nextPin = pin + num;
       setPin(nextPin);
@@ -45,6 +57,13 @@ export const PinPad: React.FC<PinPadProps> = ({
   };
 
   const handleDelete = () => {
+    if (resetTimerRef.current) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+      setIsShaking(false);
+    }
+    setLocalError(undefined);
+
     if (pin.length > 0) {
       setPin((prev) => prev.slice(0, -1));
     }
@@ -67,8 +86,8 @@ export const PinPad: React.FC<PinPadProps> = ({
   let titleText = customTitle;
   let titleColor = '#9ca3af';
 
-  if (error) {
-    titleText = error;
+  if (localError) {
+    titleText = localError;
     titleColor = '#f87171';
   } else if (successMessage) {
     titleText = successMessage;
@@ -122,7 +141,7 @@ export const PinPad: React.FC<PinPadProps> = ({
         >
           {Array.from({ length }).map((_, index) => {
             const isFilled = index < pin.length;
-            const isError = Boolean(error);
+            const isError = Boolean(localError);
             return (
               <div
                 key={index}

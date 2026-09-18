@@ -94,6 +94,11 @@ export const PayBillPinModal: React.FC = () => {
               : (language === 'العربية' ? 'أدخل الرمز السري المكون من ٤ أرقام' : 'Enter 4-Digit PIN')
           }
         />
+
+        {/* Demo PIN Helper */}
+        <div style={{ textAlign: 'center', marginTop: '14px', fontSize: '11.5px', color: '#6b7280', fontWeight: 600 }}>
+          {language === 'العربية' ? 'الرمز الافتراضي للتجربة: 1234' : 'Default Demo PIN: 1234'}
+        </div>
       </div>
     </BottomSheet>
   );
