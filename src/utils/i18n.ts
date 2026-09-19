@@ -340,3 +340,4 @@ export const formatLocalizedDate = (date: Date, language: SupportedLanguage = 'E
     hour12: true,
   }).format(date);
 };
+TRANSLATIONS['New PIN cannot be the same as current PIN'] = { en: 'New PIN cannot be the same as current PIN', ar: 'لا يمكن أن يكون الرمز الجديد مطابقاً للرمز الحالي' };

@@ -125,7 +125,7 @@ export const SplitExpensesScreen: React.FC = () => {
             {/* Expense Title & Total Amount */}
             <div style={{ backgroundColor: 'var(--color-surface, #111726)', border: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))', borderRadius: '16px', padding: '20px' }}>
               <label style={{ fontSize: '11px', color: '#A2A2BA', fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>
-                {isAr ? 'عنوان المصروف' : 'Expense Title'}
+                {isAr ? 'عنوان المصروف' : 'Expense Title'} <span style={{ color: '#FF4757' }}>*</span>
               </label>
               <input
                 type="text"

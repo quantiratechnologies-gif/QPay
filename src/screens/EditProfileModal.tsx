@@ -117,6 +117,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({ isOpen: prop
 
     setSuccessMsg(true);
     setTimeout(() => {
+      window.dispatchEvent(new Event('profile-updated'));
       handleClose();
     }, 1200);
   };

@@ -40,6 +40,7 @@ export interface Transaction {
   accountUsed?: string;
   category?: string;
   avatarInitials?: string;
+  isReported?: boolean;
 }
 
 export interface AppNotification {

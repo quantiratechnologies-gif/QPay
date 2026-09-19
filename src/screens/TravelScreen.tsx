@@ -402,6 +402,7 @@ export const TravelScreen: React.FC = () => {
           onClick={() => setActiveItem(null)}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
               maxWidth: '480px',
@@ -410,10 +411,9 @@ export const TravelScreen: React.FC = () => {
               borderTopLeftRadius: '24px',
               borderTopRightRadius: '24px',
               padding: '24px 20px',
-              maxHeight: '85vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>

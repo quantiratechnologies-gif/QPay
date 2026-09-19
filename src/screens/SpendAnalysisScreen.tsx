@@ -21,7 +21,7 @@ import { AppHeader } from '../components/AppHeader';
 import { useApp } from '../state/AppContext';
 import { formatCurrency } from '../utils/formatters';
 
-type PeriodType = 'WEEK' | 'MONTH' | 'LAST_MONTH' | 'YEAR';
+type PeriodType = 'DAY' | 'WEEK' | 'MONTH' | 'YEAR';
 
 interface CategoryData {
   id: string;
@@ -57,6 +57,20 @@ export const SpendAnalysisScreen: React.FC = () => {
 
   // Period-specific dynamic data
   const periodData = {
+    DAY: {
+      totalSpent: 420,
+      previousPeriodSpent: 380,
+      deltaPercent: 10.5,
+      dailyAverage: 420,
+      budgetLimit: 600,
+      periodNameEn: 'Today',
+      periodNameAr: 'اليوم',
+      chartData: [
+        { label: language === 'العربية' ? 'الصباح' : 'Morning', amount: 120 },
+        { label: language === 'العربية' ? 'الظهر' : 'Noon', amount: 80 },
+        { label: language === 'العربية' ? 'المساء' : 'Evening', amount: 220 },
+      ],
+    },
     WEEK: {
       totalSpent: 3420,
       previousPeriodSpent: 3950,
@@ -143,9 +157,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'shopping',
       nameEn: 'Shopping',
       nameAr: 'التسوق',
-      amount: selectedPeriod === 'WEEK' ? 950 : selectedPeriod === 'YEAR' ? 38600 : 4200,
+      amount: selectedPeriod === 'DAY' ? Math.round(950 / 7) : selectedPeriod === 'WEEK' ? 950 : selectedPeriod === 'YEAR' ? 38600 : 4200,
       percentage: 28,
-      txnCount: selectedPeriod === 'WEEK' ? 3 : 14,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 3 : 14,
       color: '#3b82f6', // Blue - Shopping
       bgColor: 'rgba(59, 130, 246, 0.16)',
       icon: <ShoppingBag size={14} color="#3b82f6" />,
@@ -155,9 +169,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'food',
       nameEn: 'Food',
       nameAr: 'المطاعم',
-      amount: selectedPeriod === 'WEEK' ? 880 : selectedPeriod === 'YEAR' ? 35200 : 3850,
+      amount: selectedPeriod === 'DAY' ? Math.round(880 / 7) : selectedPeriod === 'WEEK' ? 880 : selectedPeriod === 'YEAR' ? 35200 : 3850,
       percentage: 26,
-      txnCount: selectedPeriod === 'WEEK' ? 6 : 28,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 6 : 28,
       color: '#10b981', // Emerald - Food
       bgColor: 'rgba(16, 185, 129, 0.16)',
       icon: <Utensils size={14} color="#10b981" />,
@@ -167,9 +181,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'bills',
       nameEn: 'Bills',
       nameAr: 'الفواتير',
-      amount: selectedPeriod === 'WEEK' ? 520 : selectedPeriod === 'YEAR' ? 24500 : 2450,
+      amount: selectedPeriod === 'DAY' ? Math.round(520 / 7) : selectedPeriod === 'WEEK' ? 520 : selectedPeriod === 'YEAR' ? 24500 : 2450,
       percentage: 16,
-      txnCount: selectedPeriod === 'WEEK' ? 1 : 5,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 1 : 5,
       color: '#f59e0b', // Amber - Bills
       bgColor: 'rgba(245, 158, 11, 0.16)',
       icon: <Zap size={14} color="#f59e0b" />,
@@ -179,9 +193,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'travel',
       nameEn: 'Travel',
       nameAr: 'السفر',
-      amount: selectedPeriod === 'WEEK' ? 440 : selectedPeriod === 'YEAR' ? 18400 : 1920,
+      amount: selectedPeriod === 'DAY' ? Math.round(440 / 7) : selectedPeriod === 'WEEK' ? 440 : selectedPeriod === 'YEAR' ? 18400 : 1920,
       percentage: 13,
-      txnCount: selectedPeriod === 'WEEK' ? 4 : 12,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 4 : 12,
       color: '#ec4899', // Pink - Travel
       bgColor: 'rgba(236, 72, 153, 0.16)',
       icon: <Car size={14} color="#ec4899" />,
@@ -191,9 +205,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'transfers',
       nameEn: 'Transfers',
       nameAr: 'التحويلات',
-      amount: selectedPeriod === 'WEEK' ? 380 : selectedPeriod === 'YEAR' ? 11700 : 1250,
+      amount: selectedPeriod === 'DAY' ? Math.round(380 / 7) : selectedPeriod === 'WEEK' ? 380 : selectedPeriod === 'YEAR' ? 11700 : 1250,
       percentage: 9,
-      txnCount: selectedPeriod === 'WEEK' ? 2 : 8,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 2 : 8,
       color: '#8b5cf6', // Purple - Transfers
       bgColor: 'rgba(139, 92, 246, 0.16)',
       icon: <Send size={14} color="#8b5cf6" />,
@@ -203,9 +217,9 @@ export const SpendAnalysisScreen: React.FC = () => {
       id: 'health',
       nameEn: 'Health',
       nameAr: 'الصحة',
-      amount: selectedPeriod === 'WEEK' ? 250 : selectedPeriod === 'YEAR' ? 10000 : 1180,
+      amount: selectedPeriod === 'DAY' ? Math.round(250 / 7) : selectedPeriod === 'WEEK' ? 250 : selectedPeriod === 'YEAR' ? 10000 : 1180,
       percentage: 8,
-      txnCount: selectedPeriod === 'WEEK' ? 1 : 4,
+      txnCount: selectedPeriod === 'DAY' ? 1 : selectedPeriod === 'WEEK' ? 1 : 4,
       color: '#06b6d4', // Cyan - Health
       bgColor: 'rgba(6, 182, 212, 0.16)',
       icon: <HeartPulse size={14} color="#06b6d4" />,
@@ -355,9 +369,9 @@ export const SpendAnalysisScreen: React.FC = () => {
         >
           {(
             [
+              { id: 'DAY', labelEn: 'Day', labelAr: 'يوم' },
               { id: 'WEEK', labelEn: 'Week', labelAr: 'أسبوع' },
               { id: 'MONTH', labelEn: 'Month', labelAr: 'شهر' },
-              { id: 'LAST_MONTH', labelEn: 'Last Mo.', labelAr: 'الشهر الماضي' },
               { id: 'YEAR', labelEn: 'Year', labelAr: 'سنة' },
             ] as const
           ).map((item) => {

@@ -8,7 +8,7 @@ import { toArabicNumerals } from '../utils/i18n';
 import { formatCurrency } from '../utils/formatters';
 
 export const SendAmountScreen: React.FC = () => {
-  const { screenParams, openPinModal, contacts, bankAccounts, navigateTo, completePayment, t, language } = useApp();
+  const { screenParams, openPinModal, contacts, bankAccounts, navigateTo, completePayment, t, language, transferLimits } = useApp();
   const contact: Contact = screenParams.contact || contacts[0] || {
     id: 'default',
     name: 'Tariq Al-Otaibi',
@@ -41,7 +41,8 @@ export const SendAmountScreen: React.FC = () => {
 
   const numAmount = parseFloat(amountStr) || 0;
   const isExceedingBalance = numAmount > totalBalance;
-  const isValidAmount = numAmount > 0 && !isExceedingBalance;
+  const isExceedingLimit = numAmount > (transferLimits?.perTransactionLimit || 20000);
+  const isValidAmount = numAmount > 0 && !isExceedingBalance && !isExceedingLimit;
   const displayName = t(contact.name, contact.name);
 
   const handlePayClick = () => {
@@ -140,19 +141,22 @@ export const SendAmountScreen: React.FC = () => {
             {t('pay.enter_amount', 'Enter Amount')}
           </div>
 
-          <div
+          <label
+            htmlFor="amount-input"
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
               marginBottom: '20px',
+              cursor: 'text'
             }}
           >
             <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--brand-green)' }}>
               {language === 'العربية' ? 'ر.س' : 'SAR'}
             </span>
             <input
+              id="amount-input"
               type="text"
               inputMode="decimal"
               value={amountStr}
@@ -172,12 +176,13 @@ export const SendAmountScreen: React.FC = () => {
                 background: 'none',
                 border: 'none',
                 outline: 'none',
-                width: '240px',
-                textAlign: 'center',
+                width: '100%',
+                maxWidth: '240px',
+                textAlign: 'left',
                 padding: 0,
               }}
             />
-          </div>
+          </label>
 
           {/* Quick Amount Chips with Toggle Select & Deselect */}
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '18px' }}>
@@ -241,8 +246,8 @@ export const SendAmountScreen: React.FC = () => {
             />
           </div>
 
-          {/* Insufficient Balance Error Banner */}
-          {isExceedingBalance && (
+          {/* Insufficient Balance or Limit Exceeded Error Banner */}
+          {(isExceedingBalance || isExceedingLimit) && (
             <div
               style={{
                 backgroundColor: 'rgba(239, 68, 68, 0.15)',
@@ -255,9 +260,13 @@ export const SendAmountScreen: React.FC = () => {
                 fontWeight: 700,
               }}
             >
-              {language === 'العربية'
+              {isExceedingBalance ? (language === 'العربية'
                 ? `الرصيد غير كافٍ (المتاح: ${formatCurrency(totalBalance, language)})`
-                : `Insufficient Balance (Available: ${formatCurrency(totalBalance, language)})`}
+                : `Insufficient Balance (Available: ${formatCurrency(totalBalance, language)})`
+              ) : (language === 'العربية'
+                ? `تجاوز الحد المسموح (الحد: ${formatCurrency(transferLimits?.perTransactionLimit || 20000, language)})`
+                : `Transfer Limit Exceeded (Limit: ${formatCurrency(transferLimits?.perTransactionLimit || 20000, language)})`
+              )}
             </div>
           )}
         </div>
@@ -265,9 +274,11 @@ export const SendAmountScreen: React.FC = () => {
         <PrimaryButton onClick={handlePayClick} disabled={!isValidAmount}>
           {isExceedingBalance
             ? (language === 'العربية' ? 'الرصيد غير كافٍ' : 'Insufficient Balance')
-            : (numAmount > 0
-                ? `${t('nav.pay', 'Pay')} ${formatCurrency(numAmount, language)}`
-                : t('pay.enter_valid_amount', 'Enter Valid Amount'))}
+            : isExceedingLimit
+              ? (language === 'العربية' ? 'تجاوز الحد' : 'Limit Exceeded')
+              : (numAmount > 0
+                  ? `${t('nav.pay', 'Pay')} ${formatCurrency(numAmount, language)}`
+                  : t('pay.enter_valid_amount', 'Enter Valid Amount'))}
         </PrimaryButton>
 
         {/* Smart Routing & Settlement Guarantee */}

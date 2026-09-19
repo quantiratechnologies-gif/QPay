@@ -61,6 +61,7 @@ interface AppContextType {
 
   // Actions
   updateUser: (updatedData: Partial<User>) => void;
+  addNotification: (notif: Omit<AppNotification, 'id'>) => void;
   toggleShowBalance: (bankId: string) => void;
   addBankAccount: (bankName: string, details?: { iban?: string; accountType?: string; matchedWith?: string; balance?: number }) => Promise<BankAccount>;
   setSingleOnboardingBank: (bankName: string, details?: { iban?: string; accountType?: string; matchedWith?: string; balance?: number }) => BankAccount;
@@ -83,6 +84,7 @@ interface AppContextType {
     avatarInitials?: string;
   }) => Promise<Transaction>;
   declineMoneyRequest: (id: string) => void;
+  reportTransaction: (id: string) => void;
 
   // KYC & Re-KYC Verification
   isKycVerified: boolean;
@@ -795,6 +797,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setPendingPaymentData(null);
   };
 
+  const addNotification = (notif: Omit<AppNotification, 'id'>) => {
+    const newNotif: AppNotification = {
+      ...notif,
+      id: `notif-${Date.now()}`,
+    };
+    setNotifications((prev) => [newNotif, ...prev]);
+  };
+
   const updateUser = (updatedData: Partial<User>) => {
     setUser((prev) => {
       const newName = updatedData.name !== undefined ? updatedData.name : prev.name;
@@ -864,6 +874,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       status: req.status || 'pending',
     };
     setMoneyRequests((prev) => [newReq, ...prev]);
+  };
+
+  const reportTransaction = (id: string) => {
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, isReported: true } : t))
+    );
   };
 
   const declineMoneyRequest = (requestId: string) => {
@@ -1006,6 +1022,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         lastTransaction,
         electricityBill,
         updateUser,
+        addNotification,
         toggleShowBalance,
         addBankAccount,
         setSingleOnboardingBank,
@@ -1015,6 +1032,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         completePayment,
         receiveMoney,
         declineMoneyRequest,
+        reportTransaction,
         addMoneyRequest,
         isPinModalOpen,
         openPinModal,

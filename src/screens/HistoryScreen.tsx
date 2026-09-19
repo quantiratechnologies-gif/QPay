@@ -11,7 +11,7 @@ import type { Transaction } from '../types';
 type FilterType = 'all' | 'sent' | 'received' | 'pending';
 
 export const HistoryScreen: React.FC = () => {
-  const { transactions, t, isRtl, language, user, bankAccounts } = useApp();
+  const { transactions, t, isRtl, language, user, bankAccounts, reportTransaction } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -166,6 +166,9 @@ export const HistoryScreen: React.FC = () => {
 
   const handleSubmitDispute = (e: React.FormEvent) => {
     e.preventDefault();
+    if (selectedTxn) {
+      reportTransaction(selectedTxn.id);
+    }
     setDisputeSubmitted(true);
   };
 
@@ -252,12 +255,11 @@ export const HistoryScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Filter Tabs / Chips & Statement Download Action */}
+      {/* Filter Tabs & Statement Download Action */}
       <div
         style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
+          flexDirection: 'column',
           padding: '0 20px',
           marginBottom: '18px',
           gap: '12px',
@@ -269,7 +271,7 @@ export const HistoryScreen: React.FC = () => {
             gap: '8px',
             overflowX: 'auto',
             scrollbarWidth: 'none',
-            flex: 1,
+            width: '100%',
           }}
         >
           {(['all', 'sent', 'received', 'pending'] as FilterType[]).map((f) => {
@@ -306,17 +308,18 @@ export const HistoryScreen: React.FC = () => {
           style={{
             display: 'flex',
             alignItems: 'center',
+            justifyContent: 'center',
             gap: '6px',
             backgroundColor: 'var(--color-surface, #111726)',
             border: '1px solid rgba(127, 232, 127, 0.3)',
             color: 'var(--brand-green, #7FE87F)',
             borderRadius: '20px',
-            padding: '7px 14px',
+            padding: '10px 14px',
             fontSize: '12px',
             fontWeight: 800,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            flexShrink: 0,
+            width: '100%',
           }}
         >
           <Download size={14} />
@@ -450,8 +453,11 @@ export const HistoryScreen: React.FC = () => {
                   <div className="tabular-nums" style={{ fontSize: '26px', fontWeight: 900, color: '#FFFFFF' }}>
                     {selectedTxn.type === 'received' ? '+' : '-'}{formatCurrency(selectedTxn.amount, language)}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--brand-green, #7FE87F)', fontWeight: 700, marginTop: '3px' }}>
-                    {isAr ? 'عملية مكتملة' : 'Transfer Complete'}
+                  <div style={{ fontSize: '13px', color: selectedTxn.isReported ? '#FFB300' : 'var(--brand-green, #7FE87F)', fontWeight: 700, marginTop: '3px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                    {selectedTxn.isReported ? <AlertTriangle size={14} /> : null}
+                    {selectedTxn.isReported 
+                      ? (isAr ? 'تم رفع طلب اعتراض' : 'Dispute Reported')
+                      : (isAr ? 'عملية مكتملة' : 'Transfer Complete')}
                   </div>
                 </div>
 
@@ -490,30 +496,32 @@ export const HistoryScreen: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Actions: Dispute / SLA button */}
+                {/* Actions */}
                 <div style={{ display: 'flex', gap: '10px' }}>
-                  <button
-                    onClick={() => setIsDisputing(true)}
-                    className="interactive-tap"
-                    style={{
-                      flex: 1,
-                      backgroundColor: 'rgba(255, 71, 87, 0.12)',
-                      border: '1px solid rgba(255, 71, 87, 0.3)',
-                      borderRadius: '14px',
-                      padding: '13px',
-                      color: '#FF4757',
-                      fontSize: '13px',
-                      fontWeight: 800,
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <ShieldAlert size={16} />
-                    <span>{isAr ? 'الإبلاغ عن مشكلة' : 'Report an Issue'}</span>
-                  </button>
+                  {!selectedTxn.isReported && (
+                    <button
+                      onClick={() => setIsDisputing(true)}
+                      className="interactive-tap"
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'var(--color-surface, #111726)',
+                        border: '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
+                        borderRadius: '14px',
+                        padding: '13px',
+                        color: '#FFFFFF',
+                        fontSize: '13px',
+                        fontWeight: 800,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                      }}
+                    >
+                      <ShieldAlert size={16} />
+                      <span>{isAr ? 'الإبلاغ عن مشكلة' : 'Report an Issue'}</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleCloseModal}

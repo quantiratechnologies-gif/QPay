@@ -46,11 +46,11 @@ export const KycModal: React.FC = () => {
     if (e) e.preventDefault();
 
     const cleanId = nationalId.replace(/\D/g, '');
-    if (cleanId.length < 10) {
+    if (!/^[12]\d{9}$/.test(cleanId)) {
       setErrorMsg(
         isAr
-          ? 'يرجى إدخال رقم هوية وطنية أو إقامة صحيح من ١٠ أرقام.'
-          : 'Please enter a valid 10-digit National ID or Iqama Number.'
+          ? 'يرجى إدخال رقم هوية وطنية صحيح يبدأ بـ ١ أو ٢ ومكون من ١٠ أرقام.'
+          : 'Please enter a valid 10-digit National ID starting with 1 or 2.'
       );
       return;
     }
@@ -73,7 +73,7 @@ export const KycModal: React.FC = () => {
     <BottomSheet
       isOpen={isKycModalOpen}
       onClose={handleClose}
-      title={isAr ? 'توثيق الهوية الوطنية (Re-KYC)' : 'Identity Verification (Re-KYC)'}
+      title={isAr ? 'توثيق الهوية الوطنية (KYC)' : 'Identity Verification (KYC)'}
     >
       <div style={{ paddingBottom: '8px' }}>
         {/* Header Identity Badge */}
@@ -95,7 +95,7 @@ export const KycModal: React.FC = () => {
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-              {isAr ? 'إعادة توثيق الهوية (Re-KYC)' : 'Digital Identity & Re-KYC'}
+              {isAr ? 'إعادة توثيق الهوية (KYC)' : 'Digital Identity & KYC'}
             </h3>
             <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '2px', display: 'block' }}>
               {isAr ? 'ربط مباشر مع النفاذ الوطني الموحد وسامـا' : 'Direct verification with Nafath & SAMA'}
@@ -285,7 +285,7 @@ export const KycModal: React.FC = () => {
                   display: 'block',
                 }}
               >
-                {language === 'العربية' ? 'إرفاق وثيقة الهوية (اختياري / إعادة التوثيق)' : 'Attach ID Document (Optional / Re-KYC)'}
+                {language === 'العربية' ? 'إرفاق وثيقة الهوية (اختياري / إعادة التوثيق)' : 'Attach ID Document (Optional / KYC)'}
               </label>
               <label
                 style={{
@@ -462,7 +462,7 @@ export const KycModal: React.FC = () => {
                 }}
               >
                 <RefreshCw size={16} />
-                <span>{language === 'العربية' ? 'تحديث الوثائق / إعادة التوثيق' : 'Update Documents / Re-KYC'}</span>
+                <span>{language === 'العربية' ? 'تحديث الوثائق / إعادة التوثيق' : 'Update Documents / KYC'}</span>
               </button>
 
               <button

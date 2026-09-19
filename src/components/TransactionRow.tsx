@@ -72,8 +72,13 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({
             {displayTitle}
           </div>
           {!hideSubtitle && (
-            <div style={{ fontSize: '11.5px', color: '#8E9BAE', marginTop: '2px' }}>
-              {displaySub} &bull; {transaction.utr.substring(0, 10)}
+            <div style={{ fontSize: '11.5px', color: '#8E9BAE', marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>{displaySub} &bull; {transaction.utr.substring(0, 10)}</span>
+              {transaction.isReported && (
+                <span style={{ backgroundColor: 'rgba(255, 179, 0, 0.15)', color: '#FFB300', padding: '1px 5px', borderRadius: '4px', fontSize: '9px', fontWeight: 800, letterSpacing: '0.04em' }}>
+                  {language === 'العربية' ? 'معترض عليه' : 'REPORTED'}
+                </span>
+              )}
             </div>
           )}
         </div>

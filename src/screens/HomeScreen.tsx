@@ -29,7 +29,7 @@ export const HomeScreen: React.FC = () => {
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [showTotalBalance, setShowTotalBalance] = useState(false);
 
-  const totalBalance = bankAccounts.reduce((acc, bank) => acc + bank.balance, 0);
+  const totalBalance = bankAccounts.find(b => b.isPrimary)?.balance || (bankAccounts[0]?.balance || 0);
   const recentTransactions = transactions.slice(0, 3);
 
   const handleToggleBalance = () => {

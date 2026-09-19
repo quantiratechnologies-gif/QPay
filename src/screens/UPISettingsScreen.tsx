@@ -40,6 +40,10 @@ export const UPISettingsScreen: React.FC = () => {
       setPinError(translateText('New PIN must be 4 digits', language));
       return;
     }
+    if (newPin === oldPin) {
+      setPinError(translateText('New PIN cannot be the same as current PIN', language));
+      return;
+    }
     if (newPin !== confirmPin) {
       setPinError(translateText('New PIN and Confirm PIN do not match', language));
       return;

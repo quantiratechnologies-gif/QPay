@@ -235,6 +235,7 @@ export const FoodScreen: React.FC<FoodScreenProps> = ({ initialRestaurants }) =>
           onClick={() => setSelectedRes(null)}
         >
           <div
+            onClick={(e) => e.stopPropagation()}
             style={{
               width: '100%',
               maxWidth: '440px',
@@ -243,11 +244,9 @@ export const FoodScreen: React.FC<FoodScreenProps> = ({ initialRestaurants }) =>
               borderTopLeftRadius: '20px',
               borderTopRightRadius: '20px',
               padding: '24px 20px',
-              animation: 'slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-              maxHeight: '85vh',
+              maxHeight: '90vh',
               overflowY: 'auto',
             }}
-            onClick={(e) => e.stopPropagation()}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>

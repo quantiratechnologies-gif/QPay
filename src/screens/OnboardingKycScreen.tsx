@@ -15,11 +15,12 @@ export const OnboardingKycScreen: React.FC = () => {
 
   const handleVerify = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (nationalId.replace(/\D/g, '').length < 10) {
+    const cleanId = nationalId.replace(/\D/g, '');
+    if (!/^[12]\d{9}$/.test(cleanId)) {
       setErrorMsg(
         language === 'العربية'
-          ? 'يرجى إدخال رقم هوية وطنية أو إقامة صحيح من ١٠ أرقام.'
-          : 'Please enter a valid 10-digit National ID or Iqama Number.'
+          ? 'يرجى إدخال رقم هوية وطنية صحيح يبدأ بـ ١ أو ٢ ومكون من ١٠ أرقام.'
+          : 'Please enter a valid 10-digit National ID starting with 1 or 2.'
       );
       return;
     }

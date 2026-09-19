@@ -580,7 +580,7 @@ export const AddBankModal: React.FC = () => {
                 <Loader2 size={18} className="animate-spin" />
               ) : (
                 <>
-                  <span>{language === 'العربية' ? 'طلب رمز التحقق البنكي' : 'Request Bank OTP'}</span>
+                  <span>{language === 'العربية' ? 'ربط الحساب البنكي' : 'Link Bank Account'}</span>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }}>
                     <line x1="5" y1="12" x2="19" y2="12" />
                     <polyline points="12 5 19 12 12 19" />
