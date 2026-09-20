@@ -32,79 +32,34 @@ export function getSupabase(): SupabaseClient | null {
   return null;
 }
 
-// Universal Auth & Auto-Provisioning
-export async function authenticateWithAnyOtp(
-  mobile: string,
-  _otp: string,
-  fullName: string = 'Fahad Al-Harbi'
-): Promise<User> {
-  const cleanMobile = mobile.replace(/\s+/g, '');
-  const supabase = getSupabase();
-
-  const defaultUser: User = {
-    name: fullName,
-    avatarInitials: fullName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'QP',
-    upiId: `${cleanMobile.slice(-4)}@sarie`,
-    mobile: cleanMobile.startsWith('+966') ? cleanMobile : `+966 ${cleanMobile}`,
-    email: `${cleanMobile.slice(-6)}@qpay.sa`,
+// Apply Server-Issued Session and Cache User
+export async function setSessionFromServer(sessionData: {
+  user: User;
+  session?: {
+    access_token?: string;
+    refresh_token?: string;
+    expires_in?: number;
   };
+}): Promise<User> {
+  const { user, session } = sessionData;
+  localStorage.setItem('qpay_user_session', JSON.stringify(user));
 
-  if (!supabase) {
-    localStorage.setItem('qpay_user_session', JSON.stringify(defaultUser));
-    return defaultUser;
+  if (session?.access_token) {
+    localStorage.setItem('qpay_auth_token', session.access_token);
+    const supabase = getSupabase();
+    if (supabase && session.refresh_token) {
+      try {
+        await supabase.auth.setSession({
+          access_token: session.access_token,
+          refresh_token: session.refresh_token,
+        });
+      } catch (err) {
+        console.warn('[Supabase] Failed to set client session:', err);
+      }
+    }
   }
 
-  try {
-    // Check if profile exists
-    const { data: existingProfile, error: fetchErr } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('mobile', cleanMobile)
-      .maybeSingle();
-
-    if (existingProfile && !fetchErr) {
-      const user: User = {
-        name: existingProfile.full_name || defaultUser.name,
-        avatarInitials: existingProfile.avatar_initials || defaultUser.avatarInitials,
-        upiId: existingProfile.upi_id || defaultUser.upiId,
-        mobile: existingProfile.mobile,
-        email: `${cleanMobile.slice(-6)}@qpay.sa`,
-      };
-      localStorage.setItem('qpay_user_session', JSON.stringify(user));
-      return user;
-    }
-
-    // Auto-provision new user profile in Supabase
-    const { data: newProfile, error: insertErr } = await supabase
-      .from('profiles')
-      .insert({
-        mobile: cleanMobile,
-        role: 'customer',
-        full_name: fullName,
-        avatar_initials: defaultUser.avatarInitials,
-        upi_id: defaultUser.upiId,
-        is_kyc_verified: true,
-      })
-      .select()
-      .single();
-
-    if (newProfile && !insertErr) {
-      const user: User = {
-        name: newProfile.full_name,
-        avatarInitials: newProfile.avatar_initials,
-        upiId: newProfile.upi_id,
-        mobile: newProfile.mobile,
-        email: `${cleanMobile.slice(-6)}@qpay.sa`,
-      };
-      localStorage.setItem('qpay_user_session', JSON.stringify(user));
-      return user;
-    }
-  } catch (e) {
-    console.warn('[Supabase] Live auth sync fallback to local session:', e);
-  }
-
-  localStorage.setItem('qpay_user_session', JSON.stringify(defaultUser));
-  return defaultUser;
+  return user;
 }
 
 // Sync Transaction to Supabase

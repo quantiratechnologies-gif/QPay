@@ -134,13 +134,10 @@ interface AppContextType {
   }) => SplitExpense;
   markSplitMemberPaid: (expenseId: string, memberId: string) => void;
 
-  // MPIN & OTP Security Controls
+  // MPIN Security Controls
   userPin: string;
   setUserPin: (pin: string) => void;
   verifyUserPin: (pin: string) => boolean;
-  activeOtp: string;
-  setActiveOtp: (otp: string) => void;
-  verifyOtp: (enteredOtp: string) => boolean;
   isBalanceRevealed: boolean;
   setIsBalanceRevealed: (revealed: boolean) => void;
   isIbanRevealed: boolean;
@@ -172,7 +169,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return paramScreen;
-      if (localStorage.getItem('hasCompletedOnboarding') === 'true') return 'HOME';
     }
     return 'SPLASH';
   });
@@ -181,7 +177,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return [{ screen: paramScreen }];
-      if (localStorage.getItem('hasCompletedOnboarding') === 'true') return [{ screen: 'HOME' }];
     }
     return [{ screen: 'SPLASH' }];
   });
@@ -385,13 +380,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const verifyUserPin = (pin: string): boolean => {
     return pin === userPin || pin === '1234' || pin === '0000' || pin === '1111' || pin === '9999';
-  };
-
-  const [activeOtp, setActiveOtp] = useState<string>('589204');
-
-  const verifyOtp = (enteredOtp: string): boolean => {
-    const clean = enteredOtp.trim();
-    return clean === activeOtp || clean === '589204' || clean === '123456' || clean.length === 6;
   };
 
   const [isBalanceRevealed, setIsBalanceRevealed] = useState<boolean>(false);
@@ -1061,9 +1049,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         userPin,
         setUserPin,
         verifyUserPin,
-        activeOtp,
-        setActiveOtp,
-        verifyOtp,
         isBalanceRevealed,
         setIsBalanceRevealed,
         isIbanRevealed,

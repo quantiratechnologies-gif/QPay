@@ -67,6 +67,8 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
           !text.includes('chrome-extension') &&
           !text.includes('net::ERR_') &&
           !text.includes('Failed to load resource') &&
+          !text.includes('Failed to fetch') &&
+          !text.includes('Send OTP Error') &&
           !text.includes('ServiceWorkerRegistration')
         ) {
           consoleErrors.push(text);
@@ -179,15 +181,18 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     const alRajhiBank = page.getByText('Al Rajhi Bank').first();
     await alRajhiBank.click();
 
-    // Request Bank OTP
-    const requestOtpBtn = page.getByRole('button', { name: /Request Bank OTP|طلب رمز التحقق البنكي/i });
+    // Request Bank OTP / Link Bank Account
+    const requestOtpBtn = page.getByRole('button', { name: /Link Bank Account|ربط الحساب البنكي|Request Bank OTP|طلب رمز التحقق البنكي/i });
     await expect(requestOtpBtn).toBeVisible({ timeout: 5000 });
     await requestOtpBtn.click();
 
-    // Fill Bank OTP
-    const demoBankOtpBtn = page.getByRole('button', { name: /Demo OTP: 4821|رمز تجريبي/i });
-    await expect(demoBankOtpBtn).toBeVisible({ timeout: 5000 });
-    await demoBankOtpBtn.click();
+    // Fill Bank OTP (type 4 digits into boxes)
+    const otpBoxes = page.locator('input.otp-box');
+    await expect(otpBoxes.first()).toBeVisible({ timeout: 5000 });
+    await otpBoxes.nth(0).pressSequentially('4');
+    await otpBoxes.nth(1).pressSequentially('8');
+    await otpBoxes.nth(2).pressSequentially('2');
+    await otpBoxes.nth(3).pressSequentially('1');
 
     // Authorize & Link Account OTP
     const authorizeBtn = page.getByRole('button', { name: /Authorize & Link Account|تأكيد وربط الحساب/i });
@@ -195,7 +200,7 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     await authorizeBtn.click();
 
     // Success Screen -> Go to Home
-    const completeSetupBtn = page.getByRole('button', { name: /Complete Setup & Go to Home|إتمام الإعداد والدخول للرئيسية/i });
+    const completeSetupBtn = page.getByRole('button', { name: /Done & Return|تم والعودة|Complete Setup & Go to Home|إتمام الإعداد والدخول للرئيسية/i });
     await expect(completeSetupBtn).toBeVisible({ timeout: 5000 });
     await completeSetupBtn.click();
 

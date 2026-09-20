@@ -50,6 +50,16 @@ import { KycModal } from './screens/KycModal';
 
 const AppContent: React.FC = () => {
   const { currentScreen, isRtl } = useApp();
+  const screenContentRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (screenContentRef.current) {
+      screenContentRef.current.scrollTop = 0;
+    }
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, [currentScreen]);
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -138,7 +148,13 @@ const AppContent: React.FC = () => {
   return (
     <div className={`app-viewport ${isRtl ? 'rtl' : ''}`}>
       {/* Scrollable Main Screen Container */}
-      <div className={`screen-content ${!showBottomNav ? 'no-bottom-nav' : ''}`}>{renderScreen()}</div>
+      <div
+        ref={screenContentRef}
+        key={currentScreen}
+        className={`screen-content ${!showBottomNav ? 'no-bottom-nav' : ''}`}
+      >
+        {renderScreen()}
+      </div>
 
       {/* Global Fixed Bottom Navigation */}
       {showBottomNav && <BottomNavigation />}

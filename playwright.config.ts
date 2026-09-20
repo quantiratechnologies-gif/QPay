@@ -19,7 +19,6 @@ export default defineConfig({
         channel: 'chromium',
         launchOptions: {
           args: [
-            '--single-process',
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',

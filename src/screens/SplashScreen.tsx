@@ -6,22 +6,25 @@ import { useApp } from '../state/AppContext';
 export const SplashScreen: React.FC = () => {
   const { navigateTo, language } = useApp();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const isCompleted = typeof window !== 'undefined' && localStorage.getItem('hasCompletedOnboarding') === 'true';
-      if (isCompleted) {
-        navigateTo('HOME');
-      } else {
-        navigateTo('ONBOARDING');
-      }
-    }, 1800);
+  const handleProceed = () => {
+    const hasSeenOnboarding = typeof window !== 'undefined' && localStorage.getItem('hasSeenOnboarding') === 'true';
+    if (hasSeenOnboarding) {
+      navigateTo('MOBILE_NUMBER');
+    } else {
+      navigateTo('ONBOARDING');
+    }
+  };
 
+  useEffect(() => {
+    const timer = setTimeout(handleProceed, 1800);
     return () => clearTimeout(timer);
   }, [navigateTo]);
 
   return (
     <div
+      onClick={handleProceed}
       style={{
+        cursor: 'pointer',
         minHeight: '100vh',
         backgroundColor: '#070D0A',
         backgroundImage: 'radial-gradient(circle at 50% 40%, rgba(127, 232, 127, 0.16) 0%, rgba(7, 13, 10, 0.95) 70%)',

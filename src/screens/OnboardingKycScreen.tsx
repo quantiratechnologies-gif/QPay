@@ -13,6 +13,36 @@ export const OnboardingKycScreen: React.FC = () => {
   const [dob, setDob] = useState(kycData?.dob || '');
   const [errorMsg, setErrorMsg] = useState('');
 
+  const validateDob = (dobStr: string): string | null => {
+    if (!dobStr || dobStr.trim() === '') {
+      return language === 'العربية' ? 'يرجى إدخال تاريخ الميلاد.' : 'Please enter your date of birth.';
+    }
+    const birthDate = new Date(dobStr);
+    if (isNaN(birthDate.getTime())) {
+      return language === 'العربية' ? 'يرجى إدخال تاريخ ميلاد صحيح.' : 'Please enter a valid date of birth.';
+    }
+    const today = new Date();
+    if (birthDate > today) {
+      return language === 'العربية'
+        ? 'لا يمكن أن يكون تاريخ الميلاد في المستقبل.'
+        : 'Date of birth cannot be in the future.';
+    }
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    if (age < 18) {
+      return language === 'العربية'
+        ? 'يجب أن يكون عمرك ١٨ عاماً أو أكثر لإتمام توثيق الهوية (متطلبات البنك المركزي).'
+        : 'You must be at least 18 years old to complete verification (SAMA regulation).';
+    }
+    if (age > 120) {
+      return language === 'العربية' ? 'يرجى إدخال تاريخ ميلاد صحيح.' : 'Please enter a valid date of birth.';
+    }
+    return null;
+  };
+
   const handleVerify = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanId = nationalId.replace(/\D/g, '');
@@ -22,6 +52,12 @@ export const OnboardingKycScreen: React.FC = () => {
           ? 'يرجى إدخال رقم هوية وطنية صحيح يبدأ بـ ١ أو ٢ ومكون من ١٠ أرقام.'
           : 'Please enter a valid 10-digit National ID starting with 1 or 2.'
       );
+      return;
+    }
+
+    const dobError = validateDob(dob);
+    if (dobError) {
+      setErrorMsg(dobError);
       return;
     }
 
@@ -191,7 +227,12 @@ export const OnboardingKycScreen: React.FC = () => {
                     id="onboarding-dob"
                     type="date"
                     value={dob}
-                    onChange={(e) => setDob(e.target.value)}
+                    onChange={(e) => {
+                      setErrorMsg('');
+                      setDob(e.target.value);
+                    }}
+                    max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                    min="1900-01-01"
                     required
                     style={{
                       background: 'none',
@@ -216,14 +257,14 @@ export const OnboardingKycScreen: React.FC = () => {
 
               <button
                 type="submit"
-                disabled={nationalId.length < 10}
+                disabled={nationalId.length < 10 || !dob}
                 className="action-btn interactive-tap"
                 style={{
                   marginTop: '6px',
                   width: '100%',
                   padding: '15px',
-                  backgroundColor: nationalId.length >= 10 ? 'var(--brand-green)' : '#1f293d',
-                  color: nationalId.length >= 10 ? 'var(--brand-green-ink)' : '#6b7280',
+                  backgroundColor: nationalId.length >= 10 && dob ? 'var(--brand-green)' : '#1f293d',
+                  color: nationalId.length >= 10 && dob ? 'var(--brand-green-ink)' : '#6b7280',
                   border: 'none',
                   borderRadius: '16px',
                   fontSize: '14.5px',

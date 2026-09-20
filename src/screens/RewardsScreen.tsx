@@ -1,67 +1,32 @@
-import React, { useState } from 'react';
-import { Gift, Trophy, Sparkles, X, Check } from 'lucide-react';
+﻿import React, { useState } from 'react';
 import { AppHeader } from '../components/AppHeader';
 import { useApp } from '../state/AppContext';
 import { formatLocalizedNumber, translateText } from '../utils/i18n';
+import {
+  RewardPointsHero,
+  ScratchCardItemView,
+  ScratchCardModal,
+  getDefaultScratchCards,
+} from '../components/features/rewards';
+import type { ScratchCardItem } from '../components/features/rewards';
 
-export interface ScratchCardItem {
-  id: string;
-  title: string;
-  subtitle: string;
-  rewardText: string;
-  rewardType: 'cashback' | 'voucher' | 'points';
-  amount?: number;
-  isScratched: boolean;
-  code?: string;
-}
+export type { ScratchCardItem };
 
 export interface RewardsScreenProps {
   initialCards?: ScratchCardItem[];
   initialPoints?: number;
 }
 
-export const RewardsScreen: React.FC<RewardsScreenProps> = ({ initialCards, initialPoints = 1450 }) => {
+export const RewardsScreen: React.FC<RewardsScreenProps> = ({
+  initialCards,
+  initialPoints = 1450,
+}) => {
   const { language, isRtl } = useApp();
   const isAr = language === 'العربية' || language === 'ar';
   const [points, setPoints] = useState(initialPoints);
-  const [cards, setCards] = useState<ScratchCardItem[]>(initialCards || [
-    {
-      id: 'sc-1',
-      title: isAr ? 'مكافأة تحويل سريع' : 'Sarie Transfer Reward',
-      subtitle: isAr ? 'مكتسبة عند سداد فاتورة كهرباء بمبلغ ٢,٦٢٠ ر.س' : 'Earned on SAR 2,620 SEC Bill Payment',
-      rewardText: isAr ? 'كاش باك فوري ١٥ ر.س' : 'SAR 15 Instant Cashback',
-      rewardType: 'cashback',
-      amount: 15,
-      isScratched: false,
-    },
-    {
-      id: 'sc-2',
-      title: isAr ? 'توفير المتاجر الكبرى' : 'Supermarket Saver',
-      subtitle: isAr ? 'مكتسبة لدى أسواق بنده' : 'Earned at Panda Supermarket',
-      rewardText: isAr ? 'خصم ٢٥٪ على الأغذية والمقاضي' : 'Flat 25% Off Food & Groceries',
-      rewardType: 'voucher',
-      code: 'PANDAFOOD25',
-      isScratched: false,
-    },
-    {
-      id: 'sc-3',
-      title: isAr ? 'مكافأة عطلة نهاية الأسبوع' : 'Weekend Bonus Scratch',
-      subtitle: isAr ? 'مكافأة خاصة لإجراء أكثر من ٥ عمليات سريع' : 'Special reward for 5+ Sarie transactions',
-      rewardText: isAr ? '+٥٠٠ نقطة كيو تي إضافية' : '+500 Extra QTPoints',
-      rewardType: 'points',
-      amount: 500,
-      isScratched: false,
-    },
-    {
-      id: 'sc-4',
-      title: isAr ? 'قسيمة سفر خاصة' : 'Travel Special Voucher',
-      subtitle: isAr ? 'بطاقة خصم رحلات الخطوط السعودية' : 'Saudia flight discount card',
-      rewardText: isAr ? 'خصم فوري ١٥٠ ر.س على الطيران' : 'Flat SAR 150 Flight Discount',
-      rewardType: 'voucher',
-      code: 'FLYSAR150',
-      isScratched: true,
-    },
-  ]);
+  const [cards, setCards] = useState<ScratchCardItem[]>(
+    initialCards || getDefaultScratchCards(isAr)
+  );
 
   const [activeCard, setActiveCard] = useState<ScratchCardItem | null>(null);
   const [isScratching, setIsScratching] = useState(false);
@@ -93,264 +58,71 @@ export const RewardsScreen: React.FC<RewardsScreenProps> = ({ initialCards, init
   };
 
   return (
-    <div className="fade-in" style={{ backgroundColor: '#0B0B14', minHeight: '100vh', paddingBottom: '96px', color: '#FFFFFF' }}>
-      <AppHeader title={translateText('Rewards & Scratch Cards', language)} showBack showSettings={false} />
+    <div
+      className="fade-in"
+      style={{
+        backgroundColor: '#0B0B14',
+        minHeight: '100vh',
+        paddingBottom: '96px',
+        color: '#FFFFFF',
+      }}
+    >
+      <AppHeader
+        title={translateText('Rewards & Scratch Cards', language)}
+        showBack
+        showSettings={false}
+      />
 
       <div style={{ padding: '20px' }}>
-        {/* QTPoints Balance Hero Banner */}
+        <RewardPointsHero points={points} language={language} />
+
         <div
           style={{
-            backgroundColor: 'var(--color-surface, #111726)',
-            border: '1px solid var(--color-border, rgba(255, 255, 255, 0.08))',
-            borderRadius: '20px',
-            padding: '24px 20px',
-            textAlign: 'center',
-            marginBottom: '20px',
-            color: '#FFFFFF',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '12px',
           }}
         >
-          <div
+          <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+            {translateText('Unlocked Scratch Cards', language)}
+          </h3>
+          <span
             style={{
-              width: '56px',
-              height: '56px',
-              borderRadius: '16px',
-              backgroundColor: 'var(--brand-green-tint, rgba(127, 232, 127, 0.14))',
+              fontSize: '12px',
+              fontWeight: 700,
               color: 'var(--brand-green, #7FE87F)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 12px auto',
             }}
           >
-            <Trophy size={28} />
-          </div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--brand-green, #7FE87F)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            {translateText('Total Reward Balance', language)}
-          </div>
-          <h2 style={{ fontSize: '26px', fontWeight: 900, color: '#FFFFFF', margin: '4px 0 6px 0', fontVariantNumeric: 'tabular-nums' }}>
-            {formatLocalizedNumber(points, language)} {isAr ? 'نقاط كيو تي' : 'QTPoints'}
-          </h2>
-          <p style={{ fontSize: '12px', color: '#8E9BAE', margin: 0 }}>
-            {isAr ? 'اكسب ١٠ نقاط مكافأة على كل ١٠٠ ر.س تنفقها عبر كيو تي باي' : 'Earn 10 QTPoints on every SAR 100 spent via QTPay'}
-          </p>
-        </div>
-
-        {/* Unlocked Scratch Cards Grid */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-          <h3 style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>{translateText('Unlocked Scratch Cards', language)}</h3>
-          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--brand-green, #7FE87F)' }}>
-            {formatLocalizedNumber(cards.filter((c) => !c.isScratched).length, language)} {translateText('Unopened', language)}
+            {formatLocalizedNumber(cards.filter((c) => !c.isScratched).length, language)}{' '}
+            {translateText('Unopened', language)}
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {cards.map((card) => (
-            <div
+            <ScratchCardItemView
               key={card.id}
+              card={card}
+              language={language}
               onClick={() => handleCardClick(card)}
-              className="interactive-tap"
-              style={{
-                backgroundColor: card.isScratched ? 'var(--color-surface, #111726)' : 'var(--color-surface-elevated, #182236)',
-                border: card.isScratched ? '1px solid var(--color-border, rgba(255, 255, 255, 0.08))' : '1px dashed var(--brand-green-border, rgba(127, 232, 127, 0.35))',
-                borderRadius: '16px',
-                padding: '18px 14px',
-                textAlign: 'center',
-                cursor: 'pointer',
-                color: '#FFFFFF',
-              }}
-            >
-              {card.isScratched ? (
-                <>
-                  <div
-                    style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--brand-green-tint, rgba(127, 232, 127, 0.14))',
-                      color: 'var(--brand-green, #7FE87F)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 8px auto',
-                    }}
-                  >
-                    <Check size={20} />
-                  </div>
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: '#FFFFFF' }}>{card.rewardText}</div>
-                  <div style={{ fontSize: '11px', color: 'var(--brand-green, #7FE87F)', marginTop: '4px', fontWeight: 800 }}>{translateText('Claimed', language)}</div>
-                </>
-              ) : (
-                <>
-                  <Sparkles size={28} color="var(--brand-green, #7FE87F)" style={{ margin: '0 auto 8px auto' }} />
-                  <div style={{ fontWeight: 800, fontSize: '13px', color: '#FFFFFF' }}>{translateText('Tap to Scratch', language)}</div>
-                  <div style={{ fontSize: '11px', color: '#8E9BAE', marginTop: '4px', fontWeight: 700 }}>
-                    {card.title}
-                  </div>
-                </>
-              )}
-            </div>
+            />
           ))}
         </div>
       </div>
 
       {/* Interactive Scratch Modal */}
       {activeCard && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(11, 15, 25, 0.75)',
-            backdropFilter: 'blur(8px)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '20px',
-          }}
-          onClick={() => setActiveCard(null)}
-        >
-          <div
-            style={{
-              width: '100%',
-              maxWidth: '360px',
-              backgroundColor: 'var(--color-surface, #111726)',
-              border: '1px solid var(--color-border, rgba(255, 255, 255, 0.12))',
-              borderRadius: '20px',
-              padding: '24px',
-              textAlign: 'center',
-              position: 'relative',
-              animation: 'scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setActiveCard(null)}
-              aria-label="Close"
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: isRtl ? 'auto' : '16px',
-                left: isRtl ? '16px' : 'auto',
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: 'var(--color-surface-elevated, #182236)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                color: '#8E9BAE',
-              }}
-            >
-              <X size={18} />
-            </button>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF', margin: '8px 0 4px 0' }}>
-              {activeCard.title}
-            </h3>
-            <p style={{ fontSize: '12px', color: '#8E9BAE', margin: '0 0 20px 0' }}>{activeCard.subtitle}</p>
-
-            {/* Scratch Surface Box */}
-            <div
-              onClick={handleScratchAction}
-              style={{
-                width: '200px',
-                height: '200px',
-                margin: '0 auto 20px auto',
-                borderRadius: '20px',
-                backgroundColor: isRevealed ? 'var(--color-surface, #111726)' : 'var(--color-surface-elevated, #182236)',
-                border: isRevealed ? '2px solid var(--brand-green, #7FE87F)' : '2px dashed var(--brand-green, #7FE87F)',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: isRevealed ? 'default' : 'pointer',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-            >
-              {isScratching ? (
-                <div>
-                  <Sparkles size={36} color="var(--brand-green, #7FE87F)" style={{ animation: 'spin 1s linear infinite' }} />
-                  <div style={{ fontSize: '13px', fontWeight: 800, color: '#FFFFFF', marginTop: '10px' }}>
-                    {translateText('Revealing Reward...', language)}
-                  </div>
-                </div>
-              ) : isRevealed ? (
-                <div style={{ padding: '16px' }}>
-                  <Gift size={40} color="var(--brand-green, #7FE87F)" style={{ margin: '0 auto 10px auto' }} />
-                  <div style={{ fontSize: '18px', fontWeight: 800, color: '#FFFFFF' }}>
-                    {activeCard.rewardText}
-                  </div>
-                  {activeCard.code && (
-                    <div
-                      style={{
-                        marginTop: '10px',
-                        padding: '6px 12px',
-                        backgroundColor: 'var(--color-surface-elevated, #182236)',
-                        border: '1px dashed var(--brand-green, #7FE87F)',
-                        borderRadius: '10px',
-                        fontSize: '12px',
-                        fontWeight: 800,
-                        color: 'var(--brand-green, #7FE87F)',
-                        letterSpacing: '0.05em',
-                      }}
-                    >
-                      {translateText('CODE', language)}: {activeCard.code}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div>
-                  <Sparkles size={40} color="var(--brand-green, #7FE87F)" style={{ margin: '0 auto 10px auto' }} />
-                  <div style={{ fontSize: '14px', fontWeight: 800, color: '#FFFFFF' }}>{translateText('Tap to Scratch', language)}</div>
-                  <div style={{ fontSize: '11px', color: '#8E9BAE', marginTop: '4px' }}>{translateText('Click to reveal your reward!', language)}</div>
-                </div>
-              )}
-            </div>
-
-            {isRevealed ? (
-              <button
-                onClick={() => setActiveCard(null)}
-                className="interactive-tap"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--brand-green, #7FE87F)',
-                  border: 'none',
-                  color: 'var(--brand-green-ink, #080C14)',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                {translateText('Claimed & Saved', language)}
-              </button>
-            ) : (
-              <button
-                onClick={handleScratchAction}
-                className="interactive-tap"
-                style={{
-                  width: '100%',
-                  padding: '12px',
-                  borderRadius: '12px',
-                  backgroundColor: 'var(--brand-green, #7FE87F)',
-                  border: 'none',
-                  color: 'var(--brand-green-ink, #080C14)',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  cursor: 'pointer',
-                }}
-              >
-                {translateText('Scratch Now', language)}
-              </button>
-            )}
-          </div>
-        </div>
+        <ScratchCardModal
+          card={activeCard}
+          isRevealed={isRevealed}
+          isScratching={isScratching}
+          isRtl={isRtl}
+          language={language}
+          onClose={() => setActiveCard(null)}
+          onScratch={handleScratchAction}
+        />
       )}
     </div>
   );
 };
-
