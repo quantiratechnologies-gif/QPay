@@ -69,7 +69,7 @@ export const PermissionsScreen: React.FC = () => {
   };
 
   return (
-    <div className="fade-in" style={{ backgroundColor: '#0B0F19', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: '32px', color: '#FFFFFF' }}>
+    <div className="fade-in" style={{ backgroundColor: '#070D0A', backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(127, 232, 127, 0.14) 0%, rgba(7, 13, 10, 0.98) 60%)', minHeight: '100vh', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingBottom: '32px', color: '#FFFFFF' }}>
       <div>
         <AppHeader title={t('auth.permissions_title', 'App Permissions')} showBack={true} onBack={goBack} showSettings={false} />
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Landmark } from 'lucide-react';
 import { AppHeader } from '../components/AppHeader';
 import { useApp } from '../state/AppContext';
@@ -38,7 +38,7 @@ export const OnboardingBankScreen: React.FC = () => {
       if (!cleanIban || cleanIban.length === 0) {
         setErrorMessage(
           isAr
-            ? '???? ????? ??? ????? ????? (SA...)'
+            ? 'يرجى إدخال رقم الآيبان السعودي (SA...)'
             : 'Please enter a Saudi IBAN (starting with SA).'
         );
         return;
@@ -46,7 +46,7 @@ export const OnboardingBankScreen: React.FC = () => {
       if (!cleanIban.startsWith('SA')) {
         setErrorMessage(
           isAr
-            ? '???? ????? ??????? ???????: ??? ?? ???? ??? ??????? ?? SA'
+            ? 'قيود البنك المركزي: يجب أن يبدأ الآيبان بـ SA'
             : 'SAMA Restriction: Saudi IBAN must start with SA.'
         );
         return;
@@ -54,7 +54,7 @@ export const OnboardingBankScreen: React.FC = () => {
       if (cleanIban.length !== 24) {
         setErrorMessage(
           isAr
-            ? `???? ??????? ???????: ??? ?? ????? ??????? ?? ?? ???? ?????? (??????: ${cleanIban.length} ????)`
+            ? `قيود المصرفية السعودية: يجب أن يتكون الآيبان من ٢٤ خانة (المُدخل: ${cleanIban.length})`
             : `Saudi Banking Restriction: Saudi IBAN must be exactly 24 characters (Entered: ${cleanIban.length}).`
         );
         return;
@@ -62,7 +62,22 @@ export const OnboardingBankScreen: React.FC = () => {
       if (!/^SA\d{2}[A-Z0-9]{20}$/.test(cleanIban)) {
         setErrorMessage(
           isAr
-            ? '???? ??????? ??? ?????? ??????? ?????? ????????'
+            ? 'صيغة الآيبان غير صحيحة للبنك المختار.'
+            : 'Invalid Saudi IBAN format for selected bank.'
+        );
+        return;
+      }
+    } else if (matchMethod === 'mobile') {
+      const cleanMobile = user.mobile.replace(/\D/g, '');
+      if (!cleanMobile.startsWith('9665') && !cleanMobile.startsWith('05') && !cleanMobile.startsWith('5')) {
+        setErrorMessage(
+          isAr
+            ? 'تنبيه: يجب أن يكون رقم الجوال سعودياً صحيحاً يبدأ بـ 05'
+            : 'Restriction: Mobile number must be a valid Saudi number starting with 05.'
+        );
+        return;
+      }
+    }??? ??????? ?????? ????????'
             : 'Invalid Saudi IBAN format for selected bank.'
         );
         return;
@@ -109,8 +124,16 @@ export const OnboardingBankScreen: React.FC = () => {
     if (fullOtp.length < 4) {
       setErrorMessage(
         isAr
-          ? '???? ????? ??? ?????? ?????? ?? ? ?????'
+          ? 'يرجى إدخال رمز الأمان المكون من ٤ أرقام.'
           : 'Please enter the 4-digit verification code.'
+      );
+      return;
+    }
+    if (fullOtp !== '4829') {
+      setErrorMessage(
+        isAr
+          ? 'رمز الأمان البنكي غير صحيح. (رمز العرض: 4829)'
+          : 'Incorrect Bank OTP code. (Demo OTP: 4829)'
       );
       return;
     }
@@ -141,9 +164,9 @@ export const OnboardingBankScreen: React.FC = () => {
     <div
       className="fade-in"
       style={{
-        backgroundColor: '#080c14',
-        backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(127, 232, 127, 0.08) 0%, rgba(7, 13, 10, 0.98) 60%)',
-        minHeight: '100%',
+        backgroundColor: '#070D0A',
+        backgroundImage: 'radial-gradient(circle at 50% 15%, rgba(127, 232, 127, 0.14) 0%, rgba(7, 13, 10, 0.98) 60%)',
+        minHeight: '100vh',
         paddingBottom: '40px',
         color: '#FFFFFF',
         display: 'flex',
@@ -151,7 +174,52 @@ export const OnboardingBankScreen: React.FC = () => {
       }}
     >
       <AppHeader
-        title={isAr ? '??? ?????? ??????' : 'Link Bank Account'}
+        title={isAr ? 'ربط الحساب البنكي' : 'Link Bank Account'}
+        showBack={true}
+        onBack={goBack}
+        showSettings={false}
+      />
+
+      <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
+        <div
+          className="main-card fade-in"
+          style={{
+            width: '100%',
+            maxWidth: '440px',
+            backgroundColor: '#111726',
+            borderRadius: '24px',
+            padding: '24px 20px',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: 'none',
+            boxSizing: 'border-box',
+          }}
+        >
+          {/* Header Bank Identity Badge */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '14px',
+                backgroundColor: 'rgba(127, 232, 127, 0.14)',
+                border: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Landmark size={24} color="#7FE87F" />
+            </div>
+            <div>
+              <h3 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
+                {isAr ? 'اختر البنك' : 'Select Bank'}
+              </h3>
+              <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500, marginTop: '2px', display: 'block' }}>
+                {isAr ? 'ربط فوري ومباشر للحساب البنكي' : 'Instant and direct account connection'}
+              </span>
+            </div>
+          </div>??? ??????' : 'Link Bank Account'}
         showBack={true}
         onBack={goBack}
         showSettings={false}

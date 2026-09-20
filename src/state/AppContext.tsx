@@ -506,6 +506,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       newStack.pop();
       const prev = newStack[newStack.length - 1];
 
+      // Allow going back from SMS_OTP to MOBILE_NUMBER during auth
+      if (currentScreen === 'SMS_OTP' && prev.screen === 'MOBILE_NUMBER') {
+        setScreenStack(newStack);
+        setCurrentScreen('MOBILE_NUMBER');
+        setScreenParams(prev.params || {});
+        return;
+      }
+
       // If user has completed onboarding, do not allow going back to onboarding screens
       if (isCompleted && onboardingScreens.includes(prev.screen)) {
         setScreenStack([{ screen: 'HOME' }]);

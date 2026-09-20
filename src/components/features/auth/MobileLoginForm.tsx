@@ -125,16 +125,6 @@ export const MobileLoginForm: React.FC<MobileLoginFormProps> = ({
             >
               {t('auth.mobile_number', 'Mobile Number')}
             </label>
-            <span
-              style={{
-                fontSize: '11px',
-                color: '#7FE87F',
-                fontWeight: 800,
-                letterSpacing: '0.04em',
-              }}
-            >
-              {language === 'العربية' ? 'رمز التحقق التجريبي: 582904' : 'Demo OTP: 582904'}
-            </span>
           </div>
           <div
             style={{

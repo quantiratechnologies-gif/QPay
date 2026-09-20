@@ -106,7 +106,7 @@ export const SetPinScreen: React.FC = () => {
           >
             <ArrowLeft size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#00FF24', fontSize: '12px', fontWeight: 700 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7FE87F', fontSize: '12px', fontWeight: 700 }}>
             <ShieldCheck size={16} />
             <span>{isAr ? 'حماية الحساب SAMA' : 'SAMA 256-Bit Shield'}</span>
           </div>
@@ -119,16 +119,16 @@ export const SetPinScreen: React.FC = () => {
               width: '64px',
               height: '64px',
               borderRadius: '20px',
-              backgroundColor: 'rgba(0, 255, 36, 0.1)',
-              border: '1px solid rgba(0, 255, 36, 0.25)',
+              backgroundColor: 'rgba(127, 232, 127, 0.14)',
+              border: '1px solid rgba(127, 232, 127, 0.35)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               margin: '0 auto 16px auto',
-              color: '#00FF24',
+              color: '#7FE87F',
             }}
           >
-            {isSuccess ? <CheckCircle2 size={36} color="#00FF24" /> : <Lock size={30} />}
+            {isSuccess ? <CheckCircle2 size={36} color="#7FE87F" /> : <Lock size={30} />}
           </div>
 
           <h2 style={{ fontSize: '22px', fontWeight: 800, margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
@@ -165,9 +165,9 @@ export const SetPinScreen: React.FC = () => {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    backgroundColor: isFilled ? '#00FF24' : 'transparent',
-                    border: isFilled ? '2px solid #00FF24' : '2px solid rgba(255, 255, 255, 0.25)',
-                    boxShadow: isFilled ? '0 0 12px rgba(0, 255, 36, 0.5)' : 'none',
+                    backgroundColor: isFilled ? '#7FE87F' : 'transparent',
+                    border: isFilled ? '2px solid #7FE87F' : '2px solid rgba(255, 255, 255, 0.25)',
+                    boxShadow: isFilled ? '0 0 12px rgba(127, 232, 127, 0.5)' : 'none',
                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: isFilled ? 'scale(1.15)' : 'scale(1)',
                   }}
@@ -226,8 +226,8 @@ export const SetPinScreen: React.FC = () => {
                 transition: 'all 0.15s ease',
               }}
               onPointerDown={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(0, 255, 36, 0.15)';
-                e.currentTarget.style.borderColor = '#00FF24';
+                e.currentTarget.style.backgroundColor = 'rgba(127, 232, 127, 0.15)';
+                e.currentTarget.style.borderColor = '#7FE87F';
               }}
               onPointerUp={(e) => {
                 e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.04)';

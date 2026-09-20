@@ -274,18 +274,18 @@ export const SmsOtpScreen: React.FC = () => {
             </span>
           </p>
           <button
-            onClick={goBack}
+            onClick={() => navigateTo('MOBILE_NUMBER', { mobile, name: screenParams.name })}
             style={{
               background: 'none',
               border: 'none',
-              color: '#6E6E85',
-              fontSize: '11.5px',
-              fontWeight: 700,
+              color: '#7FE87F',
+              fontSize: '12px',
+              fontWeight: 800,
               cursor: 'pointer',
               textDecoration: 'underline',
             }}
           >
-            {language === 'العربية' ? 'تغيير الرقم' : 'Change Number'}
+            {language === 'العربية' ? 'تغيير رقم الجوال' : 'Change Mobile Number'}
           </button>
         </div>
 

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Landmark } from 'lucide-react';
 import { BottomSheet } from '../components/BottomSheet';
 import { useApp } from '../state/AppContext';
@@ -139,8 +139,17 @@ export const AddBankModal: React.FC = () => {
     if (fullOtp.length < 4) {
       setErrorMessage(
         isAr
-          ? '???? ????? ??? ?????? ?????? ?? ? ?????'
+          ? 'يرجى إدخال رمز الأمان المكون من ٤ أرقام.'
           : 'Please enter the 4-digit verification code.'
+      );
+      return;
+    }
+
+    if (fullOtp !== '4829') {
+      setErrorMessage(
+        isAr
+          ? 'رمز الأمان البنكي غير صحيح. (رمز العرض: 4829)'
+          : 'Incorrect Bank OTP code. (Demo OTP: 4829)'
       );
       return;
     }
