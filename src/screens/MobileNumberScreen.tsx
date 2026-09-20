@@ -1,8 +1,7 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { AlphPayLogo } from '../components/AlphPayLogo';
 import { COUNTRIES, type CountryItem } from '../components/CountryCodePicker';
 import { useApp } from '../state/AppContext';
-import { parsePhoneNumberFromString } from 'libphonenumber-js';
 import { MobileLoginForm } from '../components/features/auth';
 
 export const MobileNumberScreen: React.FC = () => {
@@ -20,10 +19,8 @@ export const MobileNumberScreen: React.FC = () => {
     setErrorMessage('');
 
     // E.164 phone parsing & validation
-    const rawCombined = `${selectedCountry.dialCode}${mobileNumber.replace(/\s+/g, '')}`;
-    const parsed = parsePhoneNumberFromString(rawCombined, selectedCountry.code);
-
-    if (!parsed || !parsed.isValid()) {
+    const cleanDigits = mobileNumber.replace(/\D/g, '');
+    if (cleanDigits.length < 7 || cleanDigits.length > 15) {
       setErrorMessage(
         language === 'العربية'
           ? 'رقم الهاتف غير صالح للدولة المحددة. يرجى التحقق من الرقم.'
@@ -32,7 +29,7 @@ export const MobileNumberScreen: React.FC = () => {
       return;
     }
 
-    const canonicalE164 = parsed.format('E.164');
+    const canonicalE164 = `${selectedCountry.dialCode}${cleanDigits}`;
     setIsLoading(true);
 
     try {
@@ -71,7 +68,7 @@ export const MobileNumberScreen: React.FC = () => {
       // Proceed to SMS OTP screen with verified E.164 phone
       navigateTo('SMS_OTP', {
         mobile: canonicalE164,
-        nationalNumber: parsed.nationalNumber,
+        nationalNumber: cleanDigits,
         callingCode: selectedCountry.dialCode,
         name: fullName.trim(),
         resendCooldown: data.resendCooldown || 60,
@@ -82,7 +79,7 @@ export const MobileNumberScreen: React.FC = () => {
       updateUser({ name: fullName.trim(), mobile: canonicalE164 });
       navigateTo('SMS_OTP', {
         mobile: canonicalE164,
-        nationalNumber: parsed.nationalNumber,
+        nationalNumber: cleanDigits,
         callingCode: selectedCountry.dialCode,
         name: fullName.trim(),
         resendCooldown: 60,

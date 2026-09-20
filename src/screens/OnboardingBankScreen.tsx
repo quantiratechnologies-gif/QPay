@@ -77,21 +77,6 @@ export const OnboardingBankScreen: React.FC = () => {
         );
         return;
       }
-    }??? ??????? ?????? ????????'
-            : 'Invalid Saudi IBAN format for selected bank.'
-        );
-        return;
-      }
-    } else if (matchMethod === 'mobile') {
-      const cleanMobile = user.mobile.replace(/\D/g, '');
-      if (!cleanMobile.startsWith('9665') && !cleanMobile.startsWith('05') && !cleanMobile.startsWith('5')) {
-        setErrorMessage(
-          isAr
-            ? '???? ?????: ??? ?????? ??? ?? ???? ??? ????? ???? ???? ?? 05'
-            : 'Restriction: Mobile number must be a valid Saudi number starting with 05.'
-        );
-        return;
-      }
     }
     setErrorMessage('');
     setIsLoading(true);
@@ -217,51 +202,6 @@ export const OnboardingBankScreen: React.FC = () => {
               </h3>
               <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500, marginTop: '2px', display: 'block' }}>
                 {isAr ? 'ربط فوري ومباشر للحساب البنكي' : 'Instant and direct account connection'}
-              </span>
-            </div>
-          </div>??? ??????' : 'Link Bank Account'}
-        showBack={true}
-        onBack={goBack}
-        showSettings={false}
-      />
-
-      <div style={{ padding: '16px 20px', display: 'flex', justifyContent: 'center', width: '100%', boxSizing: 'border-box' }}>
-        <div
-          className="main-card fade-in"
-          style={{
-            width: '100%',
-            maxWidth: '440px',
-            backgroundColor: '#111726',
-            borderRadius: '24px',
-            padding: '24px 20px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: 'none',
-            boxSizing: 'border-box',
-          }}
-        >
-          {/* Header Bank Identity Badge */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-            <div
-              style={{
-                width: '44px',
-                height: '44px',
-                borderRadius: '14px',
-                backgroundColor: 'rgba(127, 232, 127, 0.14)',
-                border: 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Landmark size={24} color="#7FE87F" />
-            </div>
-            <div>
-              <h3 style={{ fontSize: '17px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-                {isAr ? '???? ?????' : 'Select Bank'}
-              </h3>
-              <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 500, marginTop: '2px', display: 'block' }}>
-                {isAr ? '??? ???? ?????? ?? ????? ??????' : 'Instant and direct account connection'}
               </span>
             </div>
           </div>
