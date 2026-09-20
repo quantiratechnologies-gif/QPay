@@ -6,8 +6,19 @@ import type { BottomTab } from '../types';
 export const BottomNavigation: React.FC = () => {
   const { activeTab, setActiveTab, t, language } = useApp();
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const [hasOpenSheet, setHasOpenSheet] = useState(false);
 
   useEffect(() => {
+    // Detect open bottom sheets or modal dialogs
+    const checkOpenSheets = () => {
+      const dialog = document.querySelector('[role="dialog"], .slide-up');
+      setHasOpenSheet(!!dialog);
+    };
+
+    checkOpenSheets();
+    const observer = new MutationObserver(checkOpenSheets);
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true });
+
     // Detect when input fields are focused (keyboard open on mobile)
     const handleFocusIn = (e: FocusEvent) => {
       const target = e.target as HTMLElement | null;
@@ -34,6 +45,7 @@ export const BottomNavigation: React.FC = () => {
     window.visualViewport?.addEventListener('resize', handleViewportResize);
 
     return () => {
+      observer.disconnect();
       window.removeEventListener('focusin', handleFocusIn);
       window.removeEventListener('focusout', handleFocusOut);
       window.visualViewport?.removeEventListener('resize', handleViewportResize);
@@ -66,17 +78,17 @@ export const BottomNavigation: React.FC = () => {
         backdropFilter: 'blur(20px)',
         WebkitBackdropFilter: 'blur(20px)',
         borderTop: '1px solid #2C2C44',
-        display: isKeyboardOpen ? 'none' : 'flex',
+        display: isKeyboardOpen || hasOpenSheet ? 'none' : 'flex',
         alignItems: 'center',
         justifyContent: 'space-around',
         paddingLeft: '8px',
         paddingRight: '8px',
-        zIndex: 999,
+        zIndex: hasOpenSheet ? 50 : 999,
         boxShadow: '0 -4px 20px rgba(0, 0, 0, 0.4)',
-        transform: isKeyboardOpen ? 'translateY(100%)' : 'translateY(0)',
+        transform: isKeyboardOpen || hasOpenSheet ? 'translateY(100%)' : 'translateY(0)',
         transition: 'transform 0.2s ease, opacity 0.2s ease',
-        opacity: isKeyboardOpen ? 0 : 1,
-        pointerEvents: isKeyboardOpen ? 'none' : 'auto',
+        opacity: isKeyboardOpen || hasOpenSheet ? 0 : 1,
+        pointerEvents: isKeyboardOpen || hasOpenSheet ? 'none' : 'auto',
         boxSizing: 'border-box',
       }}
     >

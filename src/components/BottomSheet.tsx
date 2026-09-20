@@ -33,8 +33,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
         position: 'fixed',
         inset: 0,
         backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        backdropFilter: 'blur(8px)',
-        zIndex: 3000,
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        zIndex: 99999,
         display: 'flex',
         flexDirection: 'column',
         justifyContent: 'flex-end',
@@ -49,13 +50,13 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
           color: '#FFFFFF',
           borderTopLeftRadius: '28px',
           borderTopRightRadius: '28px',
-          borderTop: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-          borderLeft: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-          borderRight: '1px solid var(--color-border, rgba(255, 255, 255, 0.06))',
-          padding: '24px 20px calc(24px + env(safe-area-inset-bottom, 16px)) 20px',
-          maxHeight: '90vh',
+          borderTop: '1px solid var(--color-border, rgba(255, 255, 255, 0.1))',
+          borderLeft: '1px solid var(--color-border, rgba(255, 255, 255, 0.1))',
+          borderRight: '1px solid var(--color-border, rgba(255, 255, 255, 0.1))',
+          padding: '20px 20px calc(36px + env(safe-area-inset-bottom, 24px)) 20px',
+          maxHeight: '85vh',
           overflowY: 'auto',
-          boxShadow: 'none',
+          boxShadow: '0 -10px 40px rgba(0, 0, 0, 0.5)',
           maxWidth: '600px',
           width: '100%',
           margin: '0 auto',
@@ -64,11 +65,11 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({
       >
         <div
           style={{
-            width: '40px',
-            height: '4px',
-            backgroundColor: 'rgba(255, 255, 255, 0.15)',
-            borderRadius: '2px',
-            margin: '0 auto 16px auto',
+            width: '44px',
+            height: '5px',
+            backgroundColor: 'rgba(255, 255, 255, 0.22)',
+            borderRadius: '3px',
+            margin: '0 auto 18px auto',
           }}
         />
 
