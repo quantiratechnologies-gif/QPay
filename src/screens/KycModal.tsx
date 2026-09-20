@@ -22,7 +22,7 @@ export const KycModal: React.FC = () => {
     language,
   } = useApp();
 
-  const isAr = language === '???????';
+  const isAr = language === 'العربية' || language === 'ar';
 
   const [step, setStep] = useState<KycStep>('FORM');
   const [docType, setDocType] = useState<string>('national_id');
@@ -114,7 +114,7 @@ export const KycModal: React.FC = () => {
     <BottomSheet
       isOpen={isKycModalOpen}
       onClose={handleClose}
-      title={isAr ? '????? ?????? ??????? (KYC)' : 'Identity Verification (KYC)'}
+      title={isAr ? 'توثيق الهوية الرقمية (KYC)' : 'Identity Verification (KYC)'}
     >
       <div style={{ paddingBottom: '8px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
@@ -135,10 +135,10 @@ export const KycModal: React.FC = () => {
           </div>
           <div>
             <h3 style={{ fontSize: '16px', fontWeight: 800, margin: 0, color: '#FFFFFF', letterSpacing: '-0.01em' }}>
-              {isAr ? '????? ????? ?????? (KYC)' : 'Digital Identity & KYC'}
+              {isAr ? 'توثيق الهوية الوطنية (KYC)' : 'Digital Identity & KYC'}
             </h3>
             <span style={{ fontSize: '12px', color: '#9ca3af', fontWeight: 600, marginTop: '2px', display: 'block' }}>
-              {isAr ? '??? ????? ?? ?????? ?????? ?????? ??????' : 'Direct verification with Nafath & SAMA'}
+              {isAr ? 'ربط وتوثيق مباشر مع نفاذ والبنك المركزي' : 'Direct verification with Nafath & SAMA'}
             </span>
           </div>
         </div>

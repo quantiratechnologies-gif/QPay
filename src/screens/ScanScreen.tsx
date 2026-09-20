@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AlertCircle, X } from 'lucide-react';
 import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
@@ -14,7 +14,7 @@ import {
 
 export const ScanScreen: React.FC = () => {
   const { isScanModalOpen, setIsScanModalOpen, contacts, navigateTo, t, language } = useApp();
-  const isAr = language === '???????' || language === 'ar';
+  const isAr = language === 'العربية' || language === 'ar';
 
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState<boolean>(false);

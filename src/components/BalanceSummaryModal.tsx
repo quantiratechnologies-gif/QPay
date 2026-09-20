@@ -28,9 +28,9 @@ export const BalanceSummaryModal: React.FC<BalanceSummaryModalProps> = ({
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'rgba(15, 15, 26, 0.75)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 100,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 3000,
         display: 'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',

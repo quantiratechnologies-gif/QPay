@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 interface ScanManualInputDrawerProps {
   show: boolean;
@@ -32,7 +32,7 @@ export const ScanManualInputDrawer: React.FC<ScanManualInputDrawerProps> = ({
       }}
     >
       <label style={{ fontSize: '11.5px', color: '#8E9BAE', fontWeight: 700 }}>
-        {isAr ? '???? ???? ?? ?? ??? ????????? ??????? ??????:' : 'Enter or paste QR payload / Sarie URI to validate:'}
+        {isAr ? 'أدخل أو قم بلصق نص الـ QR / معرف سريع للتحقق:' : 'Enter or paste QR payload / Sarie URI to validate:'}
       </label>
       <div style={{ display: 'flex', gap: '8px' }}>
         <input
@@ -64,7 +64,7 @@ export const ScanManualInputDrawer: React.FC<ScanManualInputDrawerProps> = ({
             cursor: 'pointer',
           }}
         >
-          {isAr ? '????' : 'Validate'}
+          {isAr ? 'تحقق' : 'Validate'}
         </button>
       </div>
     </div>
