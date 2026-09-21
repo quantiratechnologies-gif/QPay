@@ -186,13 +186,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
   const [user, setUser] = useState<User>({
-    name: 'Fahad Al-Harbi',
-    avatarInitials: 'FA',
-    upiId: 'fahad@sarie',
-    mobile: '+966 50 123 4567',
-    email: 'fahad.alharbi@email.sa',
+    name: '',
+    avatarInitials: '',
+    upiId: '',
+    mobile: '',
+    email: '',
+    tier: 'basic',
   });
-
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);

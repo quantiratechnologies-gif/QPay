@@ -26,7 +26,7 @@ export const TransactionDetailSheet: React.FC<TransactionDetailSheetProps> = ({
   language,
 }) => {
   const [isDisputing, setIsDisputing] = useState(false);
-  const [disputeReason, setDisputeReason] = useState('Duplicate Charge');
+  const [disputeReason, setDisputeReason] = useState('');
   const [disputeSubmitted, setDisputeSubmitted] = useState(false);
 
   if (!transaction) return null;

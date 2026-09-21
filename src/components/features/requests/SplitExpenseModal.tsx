@@ -22,8 +22,8 @@ export const SplitExpenseModal: React.FC<SplitExpenseModalProps> = ({
   onDispatchSplit,
   isAr,
 }) => {
-  const [totalBill, setTotalBill] = useState('300');
-  const [billDescription, setBillDescription] = useState('Dinner split');
+  const [totalBill, setTotalBill] = useState('');
+  const [billDescription, setBillDescription] = useState('');
   const [selectedContacts, setSelectedContacts] = useState<string[]>(['c1', 'c2']);
   const [splitSuccess, setSplitSuccess] = useState(false);
 
@@ -115,7 +115,7 @@ export const SplitExpenseModal: React.FC<SplitExpenseModalProps> = ({
           </label>
           <input
             type="number"
-            value={totalBill}
+            placeholder="300" value={totalBill}
             onChange={(e) => setTotalBill(e.target.value)}
             placeholder="0.00"
             style={{
@@ -139,7 +139,7 @@ export const SplitExpenseModal: React.FC<SplitExpenseModalProps> = ({
           </label>
           <input
             type="text"
-            value={billDescription}
+            placeholder="Dinner split" value={billDescription}
             onChange={(e) => setBillDescription(e.target.value)}
             placeholder={isAr ? '????? ????? ????? ?????...' : 'Dinner, coffee, groceries...'}
             style={{

@@ -6,9 +6,9 @@ import { MobileLoginForm } from '../components/features/auth';
 
 export const MobileNumberScreen: React.FC = () => {
   const { navigateTo, user, updateUser, t, isRtl, language } = useApp();
-  const [fullName, setFullName] = useState<string>(user.name || 'Fahad Al-Harbi');
+  const [fullName, setFullName] = useState<string>('');
   const [selectedCountry, setSelectedCountry] = useState<CountryItem>(COUNTRIES[0]); // Default Saudi Arabia
-  const [mobileNumber, setMobileNumber] = useState<string>('501234567');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
