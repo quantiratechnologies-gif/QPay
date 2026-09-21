@@ -27,10 +27,10 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, Capacitor)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
         return callback(null, true);
       }
-      return callback(null, true); // Permissive in dev, lockable via CORS_ORIGIN
+      return callback(new Error('Not allowed by CORS'));
     },
     credentials: true,
   })
@@ -60,13 +60,15 @@ app.use((err: any, _req: express.Request, res: express.Response, _next: express.
   });
 });
 
-const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`[QPay Auth Server] Running on http://localhost:${PORT}`);
-});
+if (!process.env.VERCEL) {
+  const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[QPay Auth Server] Running on http://localhost:${PORT}`);
+  });
 
-process.on('SIGTERM', () => {
-  console.log('[QPay Auth Server] Shutting down gracefully...');
-  server.close(() => process.exit(0));
-});
+  process.on('SIGTERM', () => {
+    console.log('[QPay Auth Server] Shutting down gracefully...');
+    server.close(() => process.exit(0));
+  });
+}
 
 export default app;

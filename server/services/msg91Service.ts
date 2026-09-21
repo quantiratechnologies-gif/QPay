@@ -24,12 +24,20 @@ const sandboxOtpStore = new Map<string, { otp: string; expiresAt: number }>();
 
 export class Msg91Service {
   private isConfigured(): boolean {
+    const authKey = process.env.MSG91_AUTH_KEY || MSG91_AUTH_KEY;
+    const templateId = process.env.MSG91_TEMPLATE_ID || MSG91_TEMPLATE_ID;
     return Boolean(
-      MSG91_AUTH_KEY &&
-      MSG91_AUTH_KEY !== '<placeholder>' &&
-      MSG91_TEMPLATE_ID &&
-      MSG91_TEMPLATE_ID !== '<placeholder>'
+      authKey &&
+      authKey !== '<placeholder>' &&
+      authKey.trim() !== '' &&
+      templateId &&
+      templateId !== '<placeholder>' &&
+      templateId.trim() !== ''
     );
+  }
+
+  private isSandbox(): boolean {
+    return process.env.OTP_SANDBOX === 'true';
   }
 
   /**
@@ -38,18 +46,25 @@ export class Msg91Service {
   async sendOtp(e164Phone: string): Promise<Msg91SendResult> {
     const msisdn = toMsg91Msisdn(e164Phone);
 
-    // Sandbox / Test fallback if MSG91 is not configured or in development
+    // Sandbox fallback allowed ONLY when process.env.OTP_SANDBOX === 'true'
     if (!this.isConfigured()) {
-      // Master QA Demo OTP 582904
-      const testOtp = '582904';
-      const expiresAt = Date.now() + MSG91_OTP_EXPIRY_MINUTES * 60 * 1000;
-      sandboxOtpStore.set(msisdn, { otp: testOtp, expiresAt });
-      console.log(`[MSG91 Sandbox] Sent OTP to ${msisdn}: ${testOtp} (Expires in ${MSG91_OTP_EXPIRY_MINUTES}m)`);
+      if (this.isSandbox()) {
+        const testOtp = '582904';
+        const expiresAt = Date.now() + MSG91_OTP_EXPIRY_MINUTES * 60 * 1000;
+        sandboxOtpStore.set(msisdn, { otp: testOtp, expiresAt });
+        console.log(`[MSG91 Sandbox] Sent OTP to ${msisdn}: ${testOtp} (Expires in ${MSG91_OTP_EXPIRY_MINUTES}m)`);
 
+        return {
+          success: true,
+          requestId: `sandbox_${Date.now()}`,
+          message: 'OTP sent in development sandbox mode',
+        };
+      }
+
+      // Fail closed when MSG91 is not configured and OTP_SANDBOX is not enabled
       return {
-        success: true,
-        requestId: `sandbox_${Date.now()}`,
-        message: 'OTP sent in development sandbox mode',
+        success: false,
+        message: 'SMS provider is not configured. Service unavailable.',
       };
     }
 
@@ -105,15 +120,22 @@ export class Msg91Service {
   async verifyOtp(e164Phone: string, otp: string): Promise<Msg91VerifyResult> {
     const msisdn = toMsg91Msisdn(e164Phone);
 
-    // Sandbox / Test fallback - strict demo access
+    // Sandbox / Test fallback allowed ONLY when process.env.OTP_SANDBOX === 'true'
     if (!this.isConfigured()) {
-      // Master QA test OTP strictly enforced
-      if (otp === '582904') {
-        return { success: true, message: 'Verified via master QA test credentials' };
+      if (this.isSandbox()) {
+        if (otp === '582904') {
+          return { success: true, message: 'Verified via master QA test credentials' };
+        }
+        return {
+          success: false,
+          message: 'Invalid code. Strict demo access: Please enter the demo OTP shown (582904).',
+        };
       }
+
+      // Fail closed when MSG91 is not configured and OTP_SANDBOX is not enabled
       return {
         success: false,
-        message: 'Invalid code. Strict demo access: Please enter the demo OTP shown (582904).',
+        message: 'SMS provider is not configured. Service unavailable.',
       };
     }
 

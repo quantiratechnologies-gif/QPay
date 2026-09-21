@@ -63,40 +63,34 @@ export async function setSessionFromServer(sessionData: {
 }
 
 // Sync Transaction to Supabase
-export async function syncTransactionToSupabase(tx: Transaction): Promise<void> {
-  const supabase = getSupabase();
-  if (!supabase) return;
-
-  try {
-    await supabase.from('transactions').insert({
-      order_ref: tx.utr || `SAR-${Date.now().toString().slice(-6)}`,
-      sender_name: tx.title,
-      receiver_name: tx.subTitle || 'Merchant / Recipient',
-      amount: tx.amount,
-      vat_amount: Number((tx.amount * 0.15).toFixed(2)),
-      net_amount: Number((tx.amount * 0.85).toFixed(2)),
-      payment_method: 'mada',
-      status: 'settled',
-      card_last4: '9082',
-      category: tx.category || 'Instant Transfer',
-      created_at: tx.timestamp ? new Date(tx.timestamp).toISOString() : new Date().toISOString(),
-    });
-  } catch (err) {
-    console.warn('[Supabase] Transaction sync notice:', err);
-  }
+// Per audit Item 3: Direct client-side insert is removed to prevent unauthorized status injection.
+// Transactions are authoritatively recorded server-side by backend payment services.
+export async function syncTransactionToSupabase(_tx: Transaction): Promise<void> {
+  return;
 }
 
-// Realtime Transactions Listener
-export function subscribeToTransactions(onNewTransaction: (tx: Transaction) => void): () => void {
+// Realtime Transactions Listener scoped by owner_profile_id filter
+export function subscribeToTransactions(
+  onNewTransaction: (tx: Transaction) => void,
+  ownerProfileId?: string
+): () => void {
   const supabase = getSupabase();
   if (!supabase) return () => {};
 
   try {
+    const channelName = ownerProfileId ? `public:transactions:${ownerProfileId}` : 'public:transactions:user';
+    const filter = ownerProfileId ? `owner_profile_id=eq.${ownerProfileId}` : undefined;
+
     const channel = supabase
-      .channel('public:transactions:user')
+      .channel(channelName)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'transactions' },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'transactions',
+          ...(filter ? { filter } : {}),
+        },
         (payload) => {
           const row = payload.new as any;
           if (row) {

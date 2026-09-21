@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:e2e": "vite build --mode e2e",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "playwright test",
+    "test": "npm run build:e2e && playwright test",
     "verify-screens": "playwright test"
   },
   "dependencies": {

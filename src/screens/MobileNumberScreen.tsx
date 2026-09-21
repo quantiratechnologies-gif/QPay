@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { AlphPayLogo } from '../components/AlphPayLogo';
 import { COUNTRIES, type CountryItem } from '../components/CountryCodePicker';
+import { MobileLoginForm } from '../components/features/auth/MobileLoginForm';
 import { useApp } from '../state/AppContext';
-import { MobileLoginForm } from '../components/features/auth';
-
 export const MobileNumberScreen: React.FC = () => {
-  const { navigateTo, user, updateUser, t, isRtl, language } = useApp();
+  const { navigateTo, updateUser, t, isRtl, language } = useApp();
   const [fullName, setFullName] = useState<string>('');
   const [selectedCountry, setSelectedCountry] = useState<CountryItem>(COUNTRIES[0]); // Default Saudi Arabia
   const [mobileNumber, setMobileNumber] = useState<string>('');
@@ -131,11 +130,11 @@ export const MobileNumberScreen: React.FC = () => {
         language={language}
         t={t}
         onFullNameChange={setFullName}
-        onMobileNumberChange={(val) => {
+        onMobileNumberChange={(val: string) => {
           setErrorMessage('');
           setMobileNumber(val);
         }}
-        onSelectCountry={(country) => {
+        onSelectCountry={(country: CountryItem) => {
           setSelectedCountry(country);
           setErrorMessage('');
         }}

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-e2e
 *.tsbuildinfo
 dist-ssr
 *.local
@@ -28,3 +29,6 @@ dist-ssr
 test-results/
 playwright-report/
 scratch/
+.env
+*.apk
+.claude/

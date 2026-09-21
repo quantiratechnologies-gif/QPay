@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { X, Receipt, CheckCircle2 } from 'lucide-react';
 import type { Contact } from '../../../types';
 
@@ -115,7 +115,7 @@ export const SplitExpenseModal: React.FC<SplitExpenseModalProps> = ({
           </label>
           <input
             type="number"
-            placeholder="300" value={totalBill}
+            value={totalBill}
             onChange={(e) => setTotalBill(e.target.value)}
             placeholder="0.00"
             style={{
@@ -135,13 +135,13 @@ export const SplitExpenseModal: React.FC<SplitExpenseModalProps> = ({
         {/* Note / Description */}
         <div style={{ marginBottom: '18px' }}>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: '#8E9BAE', marginBottom: '6px' }}>
-            {isAr ? '????? ?? ????????' : 'Note / For What?'}
+            {isAr ? 'ملاحظة / لأجل ماذا؟' : 'Note / For What?'}
           </label>
           <input
             type="text"
-            placeholder="Dinner split" value={billDescription}
+            value={billDescription}
             onChange={(e) => setBillDescription(e.target.value)}
-            placeholder={isAr ? '????? ????? ????? ?????...' : 'Dinner, coffee, groceries...'}
+            placeholder={isAr ? 'عشاء، قهوة، بقالة...' : 'Dinner, coffee, groceries...'}
             style={{
               width: '100%',
               padding: '12px 14px',

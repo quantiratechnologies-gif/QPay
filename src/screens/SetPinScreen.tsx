@@ -36,6 +36,12 @@ export const SetPinScreen: React.FC = () => {
             setTimeout(() => {
               if (fromSettings) {
                 goBack();
+              } else if (
+                typeof window !== 'undefined' &&
+                (localStorage.getItem('hasGrantedPermissions') === 'true' ||
+                  localStorage.getItem('hasCompletedOnboarding') === 'true')
+              ) {
+                navigateTo('HOME');
               } else {
                 navigateTo('PERMISSIONS');
               }

@@ -1,7 +1,10 @@
 import { test, expect } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 
-const INDEX_HTML = path.resolve(process.cwd(), 'dist/index.html');
+const INDEX_HTML = fs.existsSync(path.resolve(process.cwd(), 'dist-e2e/index.html'))
+  ? path.resolve(process.cwd(), 'dist-e2e/index.html')
+  : path.resolve(process.cwd(), 'dist/index.html');
 const getAppUrl = (query = '') => `file://${INDEX_HTML}${query ? `?${query}` : ''}`;
 
 const SCREENS = [
@@ -40,16 +43,16 @@ const SCREENS = [
 ];
 
 const MODALS = [
-  { name: 'LanguageModal', openMethod: 'setIsLanguageModalOpen', text: 'Select Language' },
-  { name: 'LogoutModal', openMethod: 'setIsLogoutModalOpen', text: 'Log Out' },
-  { name: 'AddBankModal', openMethod: 'setIsAddBankModalOpen', text: 'Saudi Bank' },
-  { name: 'KycModal', openMethod: 'setIsKycModalOpen', text: 'National ID' },
-  { name: 'EditProfileModal', openMethod: 'setIsEditProfileModalOpen', text: 'Profile' },
+  { name: 'LanguageModal', openMethod: 'setIsLanguageModalOpen', pattern: /Select Language|اختر لغة التطبيق/ },
+  { name: 'LogoutModal', openMethod: 'setIsLogoutModalOpen', pattern: /Log Out|تسجيل الخروج/ },
+  { name: 'AddBankModal', openMethod: 'setIsAddBankModalOpen', pattern: /Select Bank|Bank Account|اختر البنك|ربط حساب/ },
+  { name: 'KycModal', openMethod: 'setIsKycModalOpen', pattern: /National ID|الهوية الوطنية/ },
+  { name: 'EditProfileModal', openMethod: 'setIsEditProfileModalOpen', pattern: /Profile|الملف الشخصي/ },
   {
     name: 'PayBillPinModal',
     openMethod: 'openPinModal',
     args: [{ title: 'Test Payment', amount: 100, subTitle: 'Electricity Bill' }],
-    text: 'PIN',
+    pattern: /PIN|الرمز السري/,
   },
 ];
 
@@ -58,25 +61,23 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
   let consoleErrors: string[] = [];
 
   test.beforeAll(async ({ browser }) => {
-    page = await browser.newPage();
+    const context = await browser.newContext({
+      viewport: { width: 390, height: 844 },
+      locale: 'en-US',
+    });
+    page = await context.newPage();
+
     page.on('console', (msg: any) => {
       if (msg.type() === 'error') {
         const text = msg.text();
-        if (
-          !text.includes('favicon') &&
-          !text.includes('chrome-extension') &&
-          !text.includes('net::ERR_') &&
-          !text.includes('Failed to load resource') &&
-          !text.includes('Failed to fetch') &&
-          !text.includes('Send OTP Error') &&
-          !text.includes('ServiceWorkerRegistration')
-        ) {
+        if (!text.includes('ServiceWorker') && !text.includes('favicon')) {
           consoleErrors.push(text);
         }
       }
     });
+
     page.on('pageerror', (err: any) => {
-      const msg = err.message || '';
+      const msg = err.message || String(err);
       if (!msg.includes('ServiceWorkerRegistration') && !msg.includes('favicon')) {
         consoleErrors.push(msg);
       }
@@ -92,8 +93,98 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
   });
 
   test('Sticky Bottom Navigation renders with correct CSS layout', async () => {
-    await page.goto(getAppUrl('screen=HOME'));
-    await page.waitForSelector('nav[role="navigation"]');
+    // Intercept auth OTP calls for UI login flow
+    await page.route('**/api/auth/otp/**', async (route: any) => {
+      const url = route.request().url();
+      if (url.includes('/send')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ success: true, message: 'OTP sent successfully' }),
+        });
+      } else if (url.includes('/verify')) {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            message: 'OTP verified successfully',
+            user: {
+              id: 'usr-fahad-verified',
+              name: 'Fahad Al-Harbi',
+              fullName: 'Fahad Al-Harbi',
+              mobile: '+966501234567',
+              role: 'customer',
+              is_kyc_verified: true,
+            },
+            session: { access_token: 'mock-token' },
+          }),
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    // Mark onboarding & permissions as previously granted so login navigates directly to HOME after PIN
+    await page.addInitScript(() => {
+      localStorage.setItem('hasSeenOnboarding', 'true');
+      localStorage.setItem('hasGrantedPermissions', 'true');
+    });
+
+    // 1. Launch App (lands on Splash -> Mobile)
+    await page.goto(getAppUrl());
+    await page.waitForLoadState('domcontentloaded');
+
+    // If splash is still displayed, click to proceed immediately
+    const splashOrMobile = page.locator('#mobile-input');
+    if (!(await splashOrMobile.isVisible())) {
+      const splashElem = page.locator('.app-viewport');
+      if (await splashElem.isVisible()) {
+        await splashElem.click();
+      }
+    }
+
+    // 2. Mobile Login Screen
+    const nameInput = page.locator('#fullname-input');
+    await expect(nameInput).toBeVisible({ timeout: 10000 });
+    await nameInput.fill('Fahad Al-Harbi');
+    const mobileInput = page.locator('#mobile-input');
+    await mobileInput.fill('501234567');
+
+    const submitBtn = page.getByRole('button', { name: /Get OTP|Continue|متابعة|الحصول على رمز التحقق/i });
+    await submitBtn.click();
+
+    // 3. SMS OTP Screen
+    const otpInputs = page.locator('input[type="text"]');
+    await expect(otpInputs.first()).toBeVisible({ timeout: 10000 });
+    const digits = ['5', '8', '2', '9', '0', '4'];
+    for (let i = 0; i < 6; i++) {
+      await otpInputs.nth(i).fill(digits[i]);
+    }
+    const verifyBtn = page.getByRole('button', { name: /Verify/i });
+    await verifyBtn.click();
+
+    // 4. Set/Enter PIN Screen
+    const key1 = page.getByRole('button', { name: '1', exact: true });
+    await expect(key1).toBeVisible({ timeout: 10000 });
+    const key2 = page.getByRole('button', { name: '2', exact: true });
+    const key3 = page.getByRole('button', { name: '3', exact: true });
+    const key4 = page.getByRole('button', { name: '4', exact: true });
+
+    // Enter 4 digits
+    await key1.click();
+    await key2.click();
+    await key3.click();
+    await key4.click();
+
+    // Confirm 4 digits
+    await key1.click();
+    await key2.click();
+    await key3.click();
+    await key4.click();
+
+    // 5. Lands on HOME screen
+    await page.waitForSelector('nav[role="navigation"]', { timeout: 10000 });
 
     const nav = page.locator('nav[role="navigation"]');
     await expect(nav).toBeVisible();
@@ -192,7 +283,7 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     await otpBoxes.nth(0).pressSequentially('4');
     await otpBoxes.nth(1).pressSequentially('8');
     await otpBoxes.nth(2).pressSequentially('2');
-    await otpBoxes.nth(3).pressSequentially('1');
+    await otpBoxes.nth(3).pressSequentially('9');
 
     // Authorize & Link Account OTP
     const authorizeBtn = page.getByRole('button', { name: /Authorize & Link Account|تأكيد وربط الحساب/i });
@@ -301,8 +392,8 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     await page.goto(getAppUrl('screen=SPEND_ANALYSIS'));
     await expect(page.getByText(/Spend Analysis|تحليل المصاريف/i).first()).toBeVisible();
 
-    // Verify Total Spending Amount
-    await expect(page.getByText(/14,850|١٤٬٨٥٠/).first()).toBeVisible();
+    // Verify Total Spending Amount (default DAY: 420)
+    await expect(page.getByText(/420|٤٢٠/).first()).toBeVisible();
 
     // Toggle Period to Week
     const weekBtn = page.getByRole('button', { name: /Week|أسبوع/i }).first();
@@ -312,6 +403,7 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     // Toggle Period to Month
     const monthBtn = page.getByRole('button', { name: /Month|شهر/i }).first();
     await monthBtn.click();
+    await expect(page.getByText(/14,850|١٤٬٨٥٠/).first()).toBeVisible();
 
     // Click Category breakdown filter (e.g. Shopping)
     const shoppingCat = page.getByText(/Shopping|التسوق/i).first();
@@ -325,18 +417,26 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
     expect(consoleErrors).toEqual([]);
   });
 
-  test('All 34 Screens render with zero JavaScript runtime errors', async () => {
-    for (const screenId of SCREENS) {
-      await page.goto(getAppUrl(`screen=${screenId}`));
-      await page.waitForLoadState('domcontentloaded');
-      await page.waitForTimeout(80);
+  test('All 34 Screens render in English and Arabic with zero JavaScript runtime errors', async () => {
+    for (const lang of ['English', 'العربية']) {
+      for (const screenId of SCREENS) {
+        await page.goto(getAppUrl(`screen=${screenId}`));
+        await page.waitForLoadState('domcontentloaded');
+        await page.evaluate((selectedLang) => {
+          const qtpay = (window as any).__qtpay;
+          if (qtpay && qtpay.setAppLanguage) {
+            qtpay.setAppLanguage(selectedLang);
+          }
+        }, lang);
+        await page.waitForTimeout(60);
 
-      // Verify viewport and screen content exist
-      const viewport = page.locator('.app-viewport');
-      await expect(viewport).toBeVisible();
+        // Verify viewport and screen content exist
+        const viewport = page.locator('.app-viewport');
+        await expect(viewport).toBeVisible();
 
-      const content = page.locator('.screen-content');
-      await expect(content).toBeVisible();
+        const content = page.locator('.screen-content');
+        await expect(content).toBeVisible();
+      }
     }
     expect(consoleErrors).toEqual([]);
   });
@@ -386,8 +486,8 @@ test.describe.serial('QtPay Comprehensive Flow Audit & Quality Verification', ()
 
       await page.waitForTimeout(150);
 
-      const bodyText = await page.textContent('body');
-      expect(bodyText).toContain(modal.text);
+      const bodyText = (await page.textContent('body')) || '';
+      expect(bodyText).toMatch(modal.pattern);
 
       // Dismiss modal
       await page.keyboard.press('Escape');

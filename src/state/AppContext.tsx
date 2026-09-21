@@ -20,7 +20,7 @@ import { notificationService } from '../services/notificationService';
 import { billPaymentService } from '../services/billPaymentService';
 
 import { translateText, type SupportedLanguage } from '../utils/i18n';
-import { syncTransactionToSupabase, subscribeToTransactions } from '../services/supabaseClient';
+import { syncTransactionToSupabase, subscribeToTransactions, getSupabase } from '../services/supabaseClient';
 import { QPayApi } from '../api';
 
 export interface KycDocumentRecord {
@@ -165,7 +165,7 @@ const INITIAL_SESSIONS: DeviceSession[] = [
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentScreen, setCurrentScreen] = useState<ScreenId>(() => {
-    if (typeof window !== 'undefined') {
+    if ((import.meta.env.DEV || import.meta.env.VITE_E2E === 'true') && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return paramScreen;
@@ -173,7 +173,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return 'SPLASH';
   });
   const [screenStack, setScreenStack] = useState<{ screen: ScreenId; params?: Record<string, any> }[]>(() => {
-    if (typeof window !== 'undefined') {
+    if ((import.meta.env.DEV || import.meta.env.VITE_E2E === 'true') && typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const paramScreen = urlParams.get('screen') as ScreenId | null;
       if (paramScreen) return [{ screen: paramScreen }];
@@ -373,23 +373,106 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return false;
   });
 
-  // MPIN & OTP Security State
-  const [userPin, setUserPinState] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('qpay_user_pin') || '1234';
+  // Salted SHA-256 PIN Security State (No plaintext PIN, no default 1234, no master PINs)
+  const PIN_SALT = 'qtpay_secure_sama_salt_v1_';
+
+  const sha256Sync = (ascii: string): string => {
+    const rightRotate = (value: number, amount: number) => (value >>> amount) | (value << (32 - amount));
+    const words: number[] = [];
+    const asciiBitLength = ascii.length * 8;
+    const hash = [
+      0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a,
+      0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
+    ];
+    const k = [
+      0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
+      0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+      0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+      0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+      0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85,
+      0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+      0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3,
+      0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+    ];
+
+    for (let i = 0; i < ascii.length; i++) {
+      words[i >> 2] |= (ascii.charCodeAt(i) & 0xff) << (24 - (i % 4) * 8);
     }
-    return '1234';
+    words[asciiBitLength >> 5] |= 0x80 << (24 - (asciiBitLength % 32));
+    words[(((asciiBitLength + 64) >> 9) << 4) + 15] = asciiBitLength;
+
+    for (let i = 0; i < words.length; i += 16) {
+      const w = words.slice(i, i + 16);
+      let a = hash[0], b = hash[1], c = hash[2], d = hash[3];
+      let e = hash[4], f = hash[5], g = hash[6], h = hash[7];
+
+      for (let j = 0; j < 64; j++) {
+        if (j < 16) {
+          w[j] = w[j] || 0;
+        } else {
+          const gamma0 = rightRotate(w[j - 15], 7) ^ rightRotate(w[j - 15], 18) ^ (w[j - 15] >>> 3);
+          const gamma1 = rightRotate(w[j - 2], 17) ^ rightRotate(w[j - 2], 19) ^ (w[j - 2] >>> 10);
+          w[j] = (w[j - 16] + gamma0 + w[j - 7] + gamma1) | 0;
+        }
+        const ch = (e & f) ^ (~e & g);
+        const maj = (a & b) ^ (a & c) ^ (b & c);
+        const sigma0 = rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22);
+        const sigma1 = rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25);
+        const t1 = h + sigma1 + ch + k[j] + w[j];
+        const t2 = sigma0 + maj;
+
+        h = g;
+        g = f;
+        f = e;
+        e = (d + t1) | 0;
+        d = c;
+        c = b;
+        b = a;
+        a = (t1 + t2) | 0;
+      }
+      hash[0] = (hash[0] + a) | 0;
+      hash[1] = (hash[1] + b) | 0;
+      hash[2] = (hash[2] + c) | 0;
+      hash[3] = (hash[3] + d) | 0;
+      hash[4] = (hash[4] + e) | 0;
+      hash[5] = (hash[5] + f) | 0;
+      hash[6] = (hash[6] + g) | 0;
+      hash[7] = (hash[7] + h) | 0;
+    }
+
+    let result = '';
+    for (let i = 0; i < 8; i++) {
+      for (let j = 3; j >= 0; j--) {
+        const b = (hash[i] >> (8 * j)) & 255;
+        result += (b < 16 ? '0' : '') + b.toString(16);
+      }
+    }
+    return result;
+  };
+
+  const hashPin = (pin: string): string => sha256Sync(PIN_SALT + pin);
+
+  const [userPinHash, setUserPinHashState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('qpay_user_pin_hash') || '';
+    }
+    return '';
   });
 
   const setUserPin = (pin: string) => {
-    setUserPinState(pin);
+    const hashed = hashPin(pin);
+    setUserPinHashState(hashed);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('qpay_user_pin', pin);
+      localStorage.setItem('qpay_user_pin_hash', hashed);
+      localStorage.removeItem('qpay_user_pin');
     }
   };
 
   const verifyUserPin = (pin: string): boolean => {
-    return pin === userPin || pin === '1234' || pin === '0000' || pin === '1111' || pin === '9999';
+    const currentHash =
+      userPinHash || (typeof window !== 'undefined' ? localStorage.getItem('qpay_user_pin_hash') || '' : '');
+    if (!currentHash) return false;
+    return hashPin(pin) === currentHash;
   };
 
   const [isBalanceRevealed, setIsBalanceRevealed] = useState<boolean>(false);
@@ -411,12 +494,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
-    // Check URL query parameters for test automation (e.g. ?screen=ELECTRICITY)
-    const urlParams = new URLSearchParams(window.location.search);
-    const initialScreen = urlParams.get('screen') as ScreenId | null;
-    if (initialScreen) {
-      setCurrentScreen(initialScreen);
-      setScreenStack([{ screen: initialScreen }]);
+    // Check URL query parameters for test automation only in DEV or E2E mode
+    if ((import.meta.env.DEV || import.meta.env.VITE_E2E === 'true') && typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialScreen = urlParams.get('screen') as ScreenId | null;
+      if (initialScreen) {
+        setCurrentScreen(initialScreen);
+        setScreenStack([{ screen: initialScreen }]);
+      }
     }
 
     // Load initial data
@@ -439,7 +524,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }).catch(() => {});
 
-    // Subscribe to Supabase real-time transactions
+    // Subscribe to Supabase real-time transactions with owner_profile_id filter
+    const profileId = (user as any).id || (typeof window !== 'undefined' ? localStorage.getItem('qpay_profile_id') : undefined);
     const unsubscribe = subscribeToTransactions((newTx) => {
       setTransactions((prev) => {
         if (prev.some((t) => t.id === newTx.id || (newTx.utr && t.utr === newTx.utr))) {
@@ -447,32 +533,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
         return [newTx, ...prev];
       });
-    });
+    }, profileId || undefined);
 
     return () => {
       unsubscribe();
     };
   }, []);
 
-  // Expose global test helpers for Playwright / automation verification
-  useEffect(() => {
-    (window as any).__qtpay = {
-      navigateTo,
-      goBack,
-      openPinModal,
-      closePinModal,
-      setIsLanguageModalOpen,
-      setIsLogoutModalOpen,
-      setIsAddBankModalOpen,
-      setIsScanModalOpen,
-      setIsEditProfileModalOpen,
-      setIsKycModalOpen,
-      setIsKycVerified,
-      isKycVerified,
-      addBankAccount,
-      currentScreen,
-    };
-  });
+
 
   const startOnboardingFlow = () => {
     localStorage.removeItem('hasSeenOnboarding');
@@ -866,6 +934,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     localStorage.removeItem('hasSeenOnboarding');
     localStorage.removeItem('hasCompletedOnboarding');
     localStorage.removeItem('hasGrantedPermissions');
+    localStorage.removeItem('qpay_user_profile');
+    localStorage.removeItem('qpay_user_pin_hash');
+    localStorage.removeItem('qpay_user_pin');
+    localStorage.removeItem('kycDocuments');
+    localStorage.removeItem('qpay_transfer_limits');
+    localStorage.removeItem('qpay_auth_token');
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase.auth.signOut().catch(() => {});
+    }
+    setUserPinHashState('');
+    setUser({
+      name: '',
+      avatarInitials: '',
+      upiId: '',
+      mobile: '',
+      email: '',
+    });
     setIsLogoutModalOpen(false);
     setCurrentScreen('SPLASH');
     setScreenStack([{ screen: 'SPLASH' }]);
@@ -1003,6 +1089,31 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
   };
 
+  // Expose global test helpers for Playwright / automation verification ONLY when VITE_E2E is true
+  useEffect(() => {
+    if (import.meta.env.VITE_E2E === 'true') {
+      (window as any).__qtpay = {
+        navigateTo,
+        goBack,
+        openPinModal,
+        closePinModal,
+        setIsLanguageModalOpen,
+        setIsLogoutModalOpen,
+        setIsAddBankModalOpen,
+        setIsScanModalOpen,
+        setIsEditProfileModalOpen,
+        setIsKycModalOpen,
+        setIsKycVerified,
+        isKycVerified,
+        addBankAccount,
+        currentScreen,
+        setAppLanguage,
+        setUserPin,
+        verifyUserPin,
+      };
+    }
+  });
+
   return (
     <AppContext.Provider
       value={{
@@ -1070,7 +1181,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         kycDocuments,
         submitReKyc,
         terminateSession,
-        userPin,
+        userPin: userPinHash,
         setUserPin,
         verifyUserPin,
         isBalanceRevealed,

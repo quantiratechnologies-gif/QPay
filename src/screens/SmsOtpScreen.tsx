@@ -11,7 +11,7 @@ import {
 } from '../components/features/auth';
 
 export const SmsOtpScreen: React.FC = () => {
-  const { navigateTo, screenParams, goBack, t, isRtl, language, updateUser } = useApp();
+  const { navigateTo, screenParams, t, isRtl, language, updateUser } = useApp();
   const mobile = screenParams.mobile || '+966501234567';
   const initialCooldown =
     typeof screenParams.resendCooldown === 'number' ? screenParams.resendCooldown : 60;
@@ -84,18 +84,6 @@ export const SmsOtpScreen: React.FC = () => {
 
     const enteredCode = otp.join('');
 
-    // Strict access: Only the demo OTP shown is permitted
-    if (enteredCode !== '582904') {
-      setErrorMsg(
-        language === 'العربية'
-          ? 'وصول مقيد: يجب إدخال رمز التحقق التجريبي المعروض أعلاه (582904).'
-          : 'Strict access: You must enter the demo OTP shown above (582904).'
-      );
-      setOtp(['', '', '', '', '', '']);
-      inputRefs[0].current?.focus();
-      return;
-    }
-
     try {
       const response = await fetch('/api/auth/otp/verify', {
         method: 'POST',
@@ -154,7 +142,9 @@ export const SmsOtpScreen: React.FC = () => {
 
       // Transition to PIN setup or Home
       const hasPin =
-        typeof window !== 'undefined' ? localStorage.getItem('qpay_user_pin') : null;
+        typeof window !== 'undefined'
+          ? localStorage.getItem('qpay_user_pin_hash') || localStorage.getItem('qpay_user_pin')
+          : null;
       if (!hasPin) {
         navigateTo('SET_PIN');
       } else {
@@ -162,24 +152,13 @@ export const SmsOtpScreen: React.FC = () => {
       }
     } catch (err: any) {
       console.error('[Verify OTP Network Error]', err);
-      // Fallback in local sandbox mode if backend proxy interrupted
-      if (enteredCode === '582904') {
-        const fallbackUser = {
-          name: screenParams.name || 'Fahad Al-Harbi',
-          mobile,
-          avatarInitials: 'QP',
-          upiId: `${mobile.slice(-4)}@sarie`,
-        };
-        updateUser(fallbackUser);
-        navigateTo('SET_PIN');
-        return;
-      }
-
       setErrorMsg(
         language === 'العربية'
           ? 'تعذر الاتصال بخادم التحقق. يرجى المحاولة مرة أخرى.'
-          : 'Unable to connect to verification server. Please try again.'
+          : 'Verification failed. Please check your connection and try again.'
       );
+      setOtp(['', '', '', '', '', '']);
+      inputRefs[0].current?.focus();
     } finally {
       setIsVerifying(false);
     }

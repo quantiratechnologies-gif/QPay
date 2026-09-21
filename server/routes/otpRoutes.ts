@@ -265,6 +265,15 @@ otpRouter.post('/verify', async (req: Request, res: Response): Promise<void> => 
   // Verify code with MSG91
   const verifyResult = await msg91Service.verifyOtp(e164, otp);
   if (!verifyResult.success) {
+    if (verifyResult.message?.includes('not configured')) {
+      res.status(503).json({
+        success: false,
+        code: 'PROVIDER_UNAVAILABLE',
+        error: verifyResult.message,
+      });
+      return;
+    }
+
     const remaining = currentRecord.maxAttempts - currentRecord.attempts;
     await logOtpAuditEvent({
       eventType: 'OTP_VERIFICATION_FAILED',

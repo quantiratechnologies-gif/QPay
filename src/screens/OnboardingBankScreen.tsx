@@ -120,8 +120,6 @@ export const OnboardingBankScreen: React.FC = () => {
     }
   };
 
-  const isOtpComplete = otpDigits.every((digit) => digit.length > 0);
-
   const handleVerifyOtpAndLink = async () => {
     const fullOtp = otpDigits.join('');
     if (fullOtp.length < 4) {
