@@ -41,12 +41,28 @@ export const SmsOtpScreen: React.FC = () => {
 
   const handleOtpChange = (index: number, value: string) => {
     setErrorMsg('');
-    const cleanVal = value.replace(/\D/g, '').slice(-1);
+    const cleanVal = value.replace(/\D/g, '');
+    
+    // Handle paste or autofill
+    if (cleanVal.length > 1) {
+      const digits = cleanVal.slice(0, 6).split('');
+      const newOtp = [...otp];
+      digits.forEach((d, i) => {
+        if (i < 6) newOtp[i] = d;
+      });
+      setOtp(newOtp);
+      const nextIndex = Math.min(digits.length, 5);
+      inputRefs[nextIndex].current?.focus();
+      return;
+    }
+
+    // Handle single character typed
+    const singleVal = cleanVal.slice(-1);
     const newOtp = [...otp];
-    newOtp[index] = cleanVal;
+    newOtp[index] = singleVal;
     setOtp(newOtp);
 
-    if (cleanVal && index < 5) {
+    if (singleVal && index < 5) {
       inputRefs[index + 1].current?.focus();
     }
   };

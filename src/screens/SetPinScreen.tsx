@@ -21,9 +21,8 @@ export const SetPinScreen: React.FC = () => {
         const next = pin + digit;
         setPin(next);
         if (next.length === 4) {
-          setTimeout(() => {
-            setStep('confirm');
-          }, 250);
+          // Instantly switch to confirm to prevent lost digits from fast typing
+          setStep('confirm');
         }
       }
     } else {
@@ -61,7 +60,7 @@ export const SetPinScreen: React.FC = () => {
         setConfirmPin((prev) => prev.slice(0, -1));
       } else {
         setStep('create');
-        setPin('');
+        setPin((prev) => prev.slice(0, -1));
       }
     }
   };

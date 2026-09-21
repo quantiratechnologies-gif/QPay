@@ -118,12 +118,28 @@ export const AddBankModal: React.FC = () => {
   };
 
   const handleOtpChange = (index: number, value: string) => {
-    const cleanValue = value.replace(/\D/g, '').slice(-1);
+    const cleanVal = value.replace(/\D/g, '');
+    
+    // Handle paste or autofill
+    if (cleanVal.length > 1) {
+      const digits = cleanVal.slice(0, 4).split('');
+      const newDigits = [...otpDigits];
+      digits.forEach((d, i) => {
+        if (i < 4) newDigits[i] = d;
+      });
+      setOtpDigits(newDigits);
+      const nextIndex = Math.min(digits.length, 3);
+      otpInputRefs[nextIndex].current?.focus();
+      return;
+    }
+
+    // Handle single character typed
+    const singleVal = cleanVal.slice(-1);
     const newDigits = [...otpDigits];
-    newDigits[index] = cleanValue;
+    newDigits[index] = singleVal;
     setOtpDigits(newDigits);
 
-    if (cleanValue && index < 3) {
+    if (singleVal && index < 3) {
       otpInputRefs[index + 1].current?.focus();
     }
   };
@@ -133,6 +149,8 @@ export const AddBankModal: React.FC = () => {
       otpInputRefs[index - 1].current?.focus();
     }
   };
+
+  const isOtpComplete = otpDigits.every((digit) => digit.length > 0);
 
   const handleVerifyOtpAndLink = async () => {
     const fullOtp = otpDigits.join('');

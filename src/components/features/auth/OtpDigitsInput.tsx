@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 
 interface OtpDigitsInputProps {
   otp: string[];
@@ -29,7 +29,6 @@ export const OtpDigitsInput: React.FC<OtpDigitsInputProps> = ({
           ref={inputRefs[index]}
           type="text"
           inputMode="numeric"
-          maxLength={1}
           value={digit}
           onChange={(e) => onOtpChange(index, e.target.value)}
           onKeyDown={(e) => onKeyDown(index, e)}

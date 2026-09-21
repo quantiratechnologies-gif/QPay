@@ -103,7 +103,6 @@ export const BankAuthorizeStep: React.FC<BankAuthorizeStepProps> = ({
                 ref={otpInputRefs[idx]}
                 type="text"
                 inputMode="numeric"
-                maxLength={1}
                 value={digit}
                 onChange={(e) => onOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => onOtpKeyDown(idx, e)}
