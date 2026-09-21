@@ -13,8 +13,14 @@ const TRUST_PROXY_HOPS = parseInt(process.env.TRUST_PROXY_HOPS || '1', 10);
 app.set('trust proxy', TRUST_PROXY_HOPS);
 
 // CORS settings
+const envCorsOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+  : [];
+
 const allowedOrigins = [
-  process.env.CORS_ORIGIN,
+  ...envCorsOrigins,
+  process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : undefined,
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:5175',
@@ -27,7 +33,12 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile apps, curl, Capacitor)
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin) || origin.startsWith('http://localhost:')) {
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.startsWith('http://localhost:') ||
+        (process.env.VERCEL_URL && origin === `https://${process.env.VERCEL_URL}`) ||
+        (process.env.VERCEL_PROJECT_PRODUCTION_URL && origin === `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`)
+      ) {
         return callback(null, true);
       }
       return callback(new Error('Not allowed by CORS'));
@@ -52,7 +63,14 @@ app.use('/api/auth/otp', otpRouter);
 
 // Global Error Handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-  console.error('[Server Error]', err);
+  if (err?.message === 'Not allowed by CORS') {
+    return res.status(403).json({
+      success: false,
+      code: 'CORS_REJECTED',
+    });
+  }
+
+  console.error('[Server Error]', err?.message, err?.stack);
   res.status(500).json({
     success: false,
     code: 'INTERNAL_SERVER_ERROR',
