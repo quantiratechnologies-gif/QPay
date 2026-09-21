@@ -185,13 +185,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isKycModalOpen, setIsKycModalOpen] = useState<boolean>(false);
 
 
-  const [user, setUser] = useState<User>({
-    name: '',
-    avatarInitials: '',
-    upiId: '',
-    mobile: '',
-    email: '',
-    tier: 'basic',
+  const [user, setUser] = useState<User>(() => {
+    if (typeof window !== 'undefined') {
+      const storedUser = localStorage.getItem('qpay_user_profile');
+      if (storedUser) {
+        try {
+          return JSON.parse(storedUser);
+        } catch (e) {}
+      }
+    }
+    return {
+      name: '',
+      avatarInitials: '',
+      upiId: '',
+      mobile: '',
+      email: '',
+      tier: 'basic',
+    };
   });
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -811,11 +821,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .substring(0, 2)
         .toUpperCase() || 'QT';
 
-      return {
+      const nextUser = {
         ...prev,
         ...updatedData,
         avatarInitials: initials,
       };
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('qpay_user_profile', JSON.stringify(nextUser));
+      }
+
+      return nextUser;
     });
   };
 
