@@ -79,7 +79,7 @@ export const BankAuthorizeStep: React.FC<BankAuthorizeStepProps> = ({
             <button
               type="button"
               onClick={() => {
-                ['4', '8', '2', '9'].forEach((d, i) => onOtpChange(i, d));
+                onOtpChange(0, '4829');
               }}
               style={{
                 backgroundColor: '#7FE87F',
@@ -103,6 +103,8 @@ export const BankAuthorizeStep: React.FC<BankAuthorizeStepProps> = ({
                 ref={otpInputRefs[idx]}
                 type="text"
                 inputMode="numeric"
+                pattern="\d*"
+                maxLength={1}
                 value={digit}
                 onChange={(e) => onOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => onOtpKeyDown(idx, e)}
