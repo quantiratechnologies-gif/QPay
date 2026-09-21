@@ -164,9 +164,9 @@ export const SetPinScreen: React.FC = () => {
                     width: '18px',
                     height: '18px',
                     borderRadius: '50%',
-                    backgroundColor: isFilled ? '#7FE87F' : 'transparent',
-                    border: isFilled ? '2px solid #7FE87F' : '2px solid rgba(255, 255, 255, 0.25)',
-                    boxShadow: isFilled ? '0 0 12px rgba(127, 232, 127, 0.5)' : 'none',
+                    backgroundColor: errorMsg && isFilled ? '#EF4444' : isFilled ? '#7FE87F' : 'transparent',
+                    border: errorMsg && isFilled ? '2px solid #EF4444' : isFilled ? '2px solid #7FE87F' : '2px solid rgba(255, 255, 255, 0.25)',
+                    boxShadow: errorMsg && isFilled ? '0 0 12px rgba(239, 68, 68, 0.5)' : isFilled ? '0 0 12px rgba(127, 232, 127, 0.5)' : 'none',
                     transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                     transform: isFilled ? 'scale(1.15)' : 'scale(1)',
                   }}

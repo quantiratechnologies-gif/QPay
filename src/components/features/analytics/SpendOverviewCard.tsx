@@ -121,7 +121,7 @@ export const SpendOverviewCard: React.FC<SpendOverviewCardProps> = ({
         <div
           className="progress-bar-fill"
           style={{
-            background: 'linear-gradient(90deg, #3b82f6, #10b981)',
+            background: 'linear-gradient(90deg, #10b981, #7FE87F)',
             height: '100%',
             width: `${budgetProgress}%`,
             borderRadius: '3px',

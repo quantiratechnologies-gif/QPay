@@ -117,7 +117,7 @@ export const SpendBarChart: React.FC<SpendBarChartProps> = ({
                   width: '100%',
                   maxWidth: '36px',
                   height: `${heightPercent}%`,
-                  background: isHovered || isMax ? 'linear-gradient(180deg, #3b82f6 0%, #10b981 100%)' : 'rgba(255, 255, 255, 0.05)',
+                  background: isHovered || isMax ? 'linear-gradient(180deg, #7FE87F 0%, #10b981 100%)' : 'rgba(255, 255, 255, 0.05)',
                   borderRadius: '6px 6px 3px 3px',
                   transition: 'all 0.25s ease',
                 }}
