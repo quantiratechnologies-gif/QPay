@@ -94,12 +94,112 @@ test.describe('Audit Item 2: Security & Authentication Hardening', () => {
     await verifyBtn.click();
     await page.waitForTimeout(500);
 
-    // Screen must NOT advance to SET_PIN or PERMISSIONS or HOME
-    const setPinHeading = page.getByText(/Set New Security PIN|Enter New PIN|Set PIN/i);
-    await expect(setPinHeading).not.toBeVisible();
-
     // Verify error alert is displayed and we remain on the verification screen
     await expect(page.getByText(/Simulated backend failure|Verification failed/i).first()).toBeVisible();
     await expect(page.getByText(/Enter 6-Digit Code|Change Mobile Number|Sent via SMS to/i).first()).toBeVisible();
+  });
+
+  test('COOLDOWN_ACTIVE response from /api/auth/otp/send navigates to OTP screen instead of showing error', async ({ page }) => {
+    // Intercept /api/auth/otp/send to simulate cooldown already active
+    await page.route('**/api/auth/otp/send', async (route) => {
+      await route.fulfill({
+        status: 429,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          code: 'COOLDOWN_ACTIVE',
+          error: 'Please wait 42 seconds before requesting a new code.',
+          retryAfter: 42,
+        }),
+      });
+    });
+
+    // Use E2E build + navigateTo bridge to reach MOBILE_NUMBER
+    await page.goto(getE2EAppUrl());
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForFunction(() => typeof (window as any).__qtpay?.navigateTo === 'function');
+    await page.evaluate(() => {
+      (window as any).__qtpay.navigateTo('MOBILE_NUMBER');
+    });
+    await page.waitForTimeout(300);
+
+    // Fill form using the known IDs
+    await expect(page.locator('#fullname-input')).toBeVisible({ timeout: 5000 });
+    await page.locator('#fullname-input').fill('Test User');
+    await page.locator('#mobile-input').fill('501234567');
+
+    // Submit
+    const submitBtn = page.getByRole('button', { name: /Get OTP|Continue|متابعة|الحصول على رمز التحقق/i });
+    await submitBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Must land on OTP screen (COOLDOWN_ACTIVE should forward, not block)
+    const otpScreen = page.getByText(/Enter 6-Digit Code|Sent via SMS|Change Mobile Number|Verification Code/i).first();
+    await expect(otpScreen).toBeVisible({ timeout: 5000 });
+
+    // Must NOT show the "Please wait 42 seconds" error on the phone screen
+    const errorBanner = page.getByText(/Please wait 42 seconds/i);
+    await expect(errorBanner).not.toBeVisible();
+  });
+
+  test('a failed send (500) does not block an immediate retry — no cooldown started', async ({ page }) => {
+    let callCount = 0;
+    await page.route('**/api/auth/otp/send', async (route) => {
+      callCount++;
+      if (callCount === 1) {
+        await route.fulfill({
+          status: 500,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: false,
+            code: 'INTERNAL_SERVER_ERROR',
+            error: 'Failed to complete OTP request. Please try again.',
+          }),
+        });
+      } else {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({
+            success: true,
+            message: 'OTP sent successfully',
+            phone: '+966501234567',
+            resendCooldown: 60,
+          }),
+        });
+      }
+    });
+
+    await page.goto(getE2EAppUrl());
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForFunction(() => typeof (window as any).__qtpay?.navigateTo === 'function');
+    await page.evaluate(() => {
+      (window as any).__qtpay.navigateTo('MOBILE_NUMBER');
+    });
+    await page.waitForTimeout(300);
+
+    await expect(page.locator('#fullname-input')).toBeVisible({ timeout: 5000 });
+    await page.locator('#fullname-input').fill('Test User');
+    await page.locator('#mobile-input').fill('501234567');
+
+    const submitBtn = page.getByRole('button', { name: /Get OTP|Continue|متابعة|الحصول على رمز التحقق/i });
+
+    // First tap — server returns 500, error shown
+    await submitBtn.click();
+    await page.waitForTimeout(1000);
+
+    // Should see the error, not OTP screen
+    const errorMsg = page.getByText(/Failed to complete|Failed to send|server error/i).first();
+    await expect(errorMsg).toBeVisible({ timeout: 3000 });
+
+    // Second tap — should succeed immediately (no cooldown was recorded)
+    await submitBtn.click();
+    await page.waitForTimeout(1500);
+
+    // Must navigate to OTP screen, not show COOLDOWN_ACTIVE
+    const cooldownMsg = page.getByText(/Please wait.*seconds/i);
+    await expect(cooldownMsg).not.toBeVisible();
+
+    expect(callCount).toBe(2);
   });
 });

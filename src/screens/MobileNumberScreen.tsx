@@ -48,7 +48,19 @@ export const MobileNumberScreen: React.FC = () => {
 
       if (!response.ok || !data.success) {
         if (data.code === 'COOLDOWN_ACTIVE') {
-          setErrorMessage(data.error || 'Cooldown active. Please wait.');
+          updateUser({
+            name: fullName.trim(),
+            mobile: canonicalE164,
+          });
+
+          navigateTo('SMS_OTP', {
+            mobile: canonicalE164,
+            nationalNumber: cleanDigits,
+            callingCode: selectedCountry.dialCode,
+            name: fullName.trim(),
+            resendCooldown: data.retryAfter || 60,
+          });
+          return;
         } else if (data.code === 'RATE_LIMITED') {
           setErrorMessage(data.error || 'Too many OTP requests. Please try later.');
         } else {

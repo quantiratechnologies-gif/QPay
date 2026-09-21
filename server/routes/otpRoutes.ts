@@ -108,56 +108,66 @@ otpRouter.post('/send', async (req: Request, res: Response): Promise<void> => {
     return;
   }
 
-  // Record rate limiting event
-  await recordRateEvent(e164, ip, 'send');
+  try {
+    // Record verification tracking in Supabase or local memory
+    const supabase = getSupabaseServer();
+    const expiryMinutes = parseInt(process.env.MSG91_OTP_EXPIRY_MINUTES || '10', 10);
+    const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
 
-  // Record verification tracking in Supabase or local memory
-  const supabase = getSupabaseServer();
-  const expiryMinutes = parseInt(process.env.MSG91_OTP_EXPIRY_MINUTES || '10', 10);
-  const expiresAt = new Date(Date.now() + expiryMinutes * 60 * 1000);
-
-  if (supabase) {
-    try {
-      await supabase.from('otp_verifications').insert([
-        {
-          phone: e164,
-          provider: 'msg91',
-          request_id: sendResult.requestId || null,
-          status: 'pending',
-          expires_at: expiresAt.toISOString(),
-          attempts: 0,
-          max_attempts: 5,
-          ip_address: ip !== 'unknown' ? ip : null,
-        },
-      ]);
-    } catch (err) {
-      console.warn('[OtpRoutes] Database record insert failed, keeping in-memory:', err);
+    if (supabase) {
+      try {
+        await supabase.from('otp_verifications').insert([
+          {
+            phone: e164,
+            provider: 'msg91',
+            request_id: sendResult.requestId || null,
+            status: 'pending',
+            expires_at: expiresAt.toISOString(),
+            attempts: 0,
+            max_attempts: 5,
+            ip_address: ip !== 'unknown' ? ip : null,
+          },
+        ]);
+      } catch (err) {
+        console.warn('[OtpRoutes] Database record insert failed, keeping in-memory:', err);
+      }
     }
+
+    localVerifications.set(e164, {
+      id: `ver_${Date.now()}`,
+      phone: e164,
+      status: 'pending',
+      attempts: 0,
+      maxAttempts: 5,
+      expiresAt: Date.now() + expiryMinutes * 60 * 1000,
+      createdAt: Date.now(),
+    });
+
+    // Audit event log
+    await logOtpAuditEvent({
+      eventType: 'OTP_REQUESTED',
+      phone: e164,
+      ipAddress: ip,
+    });
+
+    // Only record cooldown / rate limiting event after provider send and all steps succeed
+    await recordRateEvent(e164, ip, 'send');
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP sent successfully',
+      phone: e164,
+      resendCooldown: 60,
+    });
+  } catch (err: any) {
+    console.error('[OtpRoutes] Failed to finalize OTP send:', err?.message, err?.stack);
+    // If any later step fails, do not start the cooldown
+    res.status(500).json({
+      success: false,
+      code: 'INTERNAL_SERVER_ERROR',
+      error: 'Failed to complete OTP request. Please try again.',
+    });
   }
-
-  localVerifications.set(e164, {
-    id: `ver_${Date.now()}`,
-    phone: e164,
-    status: 'pending',
-    attempts: 0,
-    maxAttempts: 5,
-    expiresAt: Date.now() + expiryMinutes * 60 * 1000,
-    createdAt: Date.now(),
-  });
-
-  // Audit event log
-  await logOtpAuditEvent({
-    eventType: 'OTP_REQUESTED',
-    phone: e164,
-    ipAddress: ip,
-  });
-
-  res.status(200).json({
-    success: true,
-    message: 'OTP sent successfully',
-    phone: e164,
-    resendCooldown: 60,
-  });
 });
 
 /**
