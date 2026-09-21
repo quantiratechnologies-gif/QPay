@@ -161,7 +161,15 @@ export const MobileLoginForm: React.FC<MobileLoginFormProps> = ({
                 value={mobileNumber}
                 onChange={(e) => {
                   const clean = e.target.value.replace(/[^\d\s]/g, '');
-                  onMobileNumberChange(clean);
+                  // Format as XXX XXX XXXX for UX
+                  const rawDigits = clean.replace(/\D/g, '');
+                  let formatted = rawDigits;
+                  if (rawDigits.length > 2 && rawDigits.length <= 5) {
+                    formatted = `${rawDigits.slice(0, 2)} ${rawDigits.slice(2)}`;
+                  } else if (rawDigits.length > 5) {
+                    formatted = `${rawDigits.slice(0, 2)} ${rawDigits.slice(2, 5)} ${rawDigits.slice(5)}`;
+                  }
+                  onMobileNumberChange(formatted);
                 }}
                 placeholder="50 123 4567"
                 maxLength={15}
@@ -210,7 +218,7 @@ export const MobileLoginForm: React.FC<MobileLoginFormProps> = ({
           <PrimaryButton
             type="submit"
             disabled={
-              mobileNumber.trim().length < 5 || fullName.trim().length === 0 || isLoading
+              mobileNumber.replace(/\s/g, '').trim().length < 9 || fullName.trim().length === 0 || isLoading
             }
           >
             {isLoading ? (

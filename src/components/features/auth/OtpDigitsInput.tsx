@@ -29,6 +29,7 @@ export const OtpDigitsInput: React.FC<OtpDigitsInputProps> = ({
           ref={inputRefs[index]}
           type="text"
           inputMode="numeric"
+          pattern="\d*"
           value={digit}
           onChange={(e) => onOtpChange(index, e.target.value)}
           onKeyDown={(e) => onKeyDown(index, e)}

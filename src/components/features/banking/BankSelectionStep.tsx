@@ -243,7 +243,13 @@ export const BankSelectionStep: React.FC<BankSelectionStepProps> = ({
               <input
                 type="text"
                 value={cardExpiry}
-                onChange={(e) => onCardExpiryChange(e.target.value.slice(0, 5))}
+                onChange={(e) => {
+                  let v = e.target.value.replace(/\D/g, '');
+                  if (v.length >= 3) {
+                    v = v.slice(0, 2) + '/' + v.slice(2, 4);
+                  }
+                  onCardExpiryChange(v.slice(0, 5));
+                }}
                 placeholder="MM/YY"
                 maxLength={5}
                 style={{
