@@ -798,18 +798,28 @@ app.post('/api/payments', authMiddleware, async (req: AuthRequest, res: express.
           .eq('order_ref', idempotencyKey)
           .maybeSingle();
 
-        if (existingTx && existingTx.payer_profile_id === req.profileId) {
-          const { data: wallet } = await supabase
-            .from('wallets')
-            .select('balance')
-            .eq('profile_id', req.profileId)
-            .single();
+        if (existingTx) {
+          if (existingTx.payer_profile_id === req.profileId) {
+            const { data: wallet } = await supabase
+              .from('wallets')
+              .select('balance')
+              .eq('profile_id', req.profileId)
+              .single();
 
-          res.json({
-            transaction: existingTx,
-            balance: wallet?.balance ?? 0,
-          });
-          return;
+            res.json({
+              transaction: existingTx,
+              balance: wallet?.balance ?? 0,
+            });
+            return;
+          } else {
+            res.status(409).json({
+              error: 'IDEMPOTENCY_KEY_CONFLICT',
+              message: 'Transaction reference conflict / تعارض في مرجع المعاملة',
+              message_en: 'Transaction reference conflict',
+              message_ar: 'تعارض في مرجع المعاملة',
+            });
+            return;
+          }
         }
       }
       console.error('[/api/payments] RPC error:', error);
