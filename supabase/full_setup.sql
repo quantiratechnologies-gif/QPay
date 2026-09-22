@@ -21,7 +21,7 @@ BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql;
 
 -- ----------------------------------------------------------------------------
 -- 1. PROFILES & USERS BASE TABLE (Ensure compatibility with existing schema)
@@ -288,12 +288,11 @@ ALTER TABLE public.hotel_reservations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.idempotency_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.fintech_audit_logs ENABLE ROW LEVEL SECURITY;
 
--- Profiles: Users can read and update their own profile
+-- Profiles: Users can read their own profile (writes go through server / service role)
 DROP POLICY IF EXISTS profiles_owner_policy ON public.profiles;
 CREATE POLICY profiles_owner_policy ON public.profiles
-    FOR ALL
-    USING (auth.uid() = user_id OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true))
-    WITH CHECK (auth.uid() = user_id OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true));
+    FOR SELECT
+    USING (auth.uid() = user_id OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true));
 
 -- Transfer Limits: Users can only read their own transfer limits
 DROP POLICY IF EXISTS transfer_limits_owner_select ON public.user_transfer_limits;
@@ -301,12 +300,11 @@ CREATE POLICY transfer_limits_owner_select ON public.user_transfer_limits
     FOR SELECT
     USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
 
--- KYC Records: Users can only see/submit their own KYC records
+-- KYC Records: Users can only read their own KYC records (writes go through server / service role)
 DROP POLICY IF EXISTS kyc_owner_policy ON public.user_kyc_records;
 CREATE POLICY kyc_owner_policy ON public.user_kyc_records
-    FOR ALL
-    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)))
-    WITH CHECK (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
+    FOR SELECT
+    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
 
 -- Split Expenses: Creator or Participants can view the split expense
 DROP POLICY IF EXISTS split_expenses_party_policy ON public.split_expenses;
@@ -331,30 +329,24 @@ CREATE POLICY split_members_party_policy ON public.split_members
         OR split_id IN (SELECT id FROM public.split_expenses WHERE creator_profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)))
     );
 
--- Travel Bookings: Strict owner-only access
+-- Travel Bookings: Strict owner-only SELECT (writes go through server / service role)
 DROP POLICY IF EXISTS flight_bookings_owner_policy ON public.flight_bookings;
 CREATE POLICY flight_bookings_owner_policy ON public.flight_bookings
-    FOR ALL
-    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)))
-    WITH CHECK (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
+    FOR SELECT
+    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
 
 DROP POLICY IF EXISTS airport_bookings_owner_policy ON public.airport_service_bookings;
 CREATE POLICY airport_bookings_owner_policy ON public.airport_service_bookings
-    FOR ALL
-    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)))
-    WITH CHECK (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
+    FOR SELECT
+    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
 
 DROP POLICY IF EXISTS hotel_bookings_owner_policy ON public.hotel_reservations;
 CREATE POLICY hotel_bookings_owner_policy ON public.hotel_reservations
-    FOR ALL
-    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)))
-    WITH CHECK (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
+    FOR SELECT
+    USING (profile_id IN (SELECT id FROM public.profiles WHERE user_id = auth.uid() OR id::text = auth.jwt()->>'sub' OR id::text = current_setting('request.jwt.claim.sub', true)));
 
--- Audit Logs: Insert allowed by authenticated backend services; NO update or delete allowed
+-- Audit Logs: Service role bypasses RLS; auditors can read
 DROP POLICY IF EXISTS audit_logs_insert_only ON public.fintech_audit_logs;
-CREATE POLICY audit_logs_insert_only ON public.fintech_audit_logs
-    FOR INSERT
-    WITH CHECK (true);
 
 DROP POLICY IF EXISTS audit_logs_read_auditors ON public.fintech_audit_logs;
 CREATE POLICY audit_logs_read_auditors ON public.fintech_audit_logs
@@ -386,7 +378,7 @@ BEGIN
   END IF;
 
   ALTER TABLE public.profiles DROP CONSTRAINT IF EXISTS profiles_role_check;
-  ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('customer', 'merchant'));
+  ALTER TABLE public.profiles ADD CONSTRAINT profiles_role_check CHECK (role IN ('customer', 'merchant', 'admin', 'compliance_auditor'));
 END $$;
 
 -- ----------------------------------------------------------------------------
@@ -576,6 +568,11 @@ DECLARE
     v_lock_first UUID;
     v_lock_second UUID;
 BEGIN
+    -- 0. Validate amount
+    IF p_amount <= 0 THEN
+        RAISE EXCEPTION 'INVALID_AMOUNT';
+    END IF;
+
     -- 1. Idempotency check: return existing row if order_ref matches
     SELECT * INTO v_existing_tx
     FROM public.transactions
@@ -583,6 +580,9 @@ BEGIN
     LIMIT 1;
 
     IF FOUND THEN
+        IF v_existing_tx.payer_profile_id IS DISTINCT FROM p_payer THEN
+            RAISE EXCEPTION 'IDEMPOTENCY_KEY_CONFLICT';
+        END IF;
         RETURN NEXT v_existing_tx;
         RETURN;
     END IF;
@@ -618,7 +618,12 @@ BEGIN
     PERFORM 1 FROM public.wallets WHERE profile_id = v_lock_first FOR UPDATE;
     PERFORM 1 FROM public.wallets WHERE profile_id = v_lock_second FOR UPDATE;
 
-    -- 6. Check payer balance
+    -- 6. Verify BOTH wallets exist (payer and payee)
+    IF NOT EXISTS (SELECT 1 FROM public.wallets WHERE profile_id = v_payee_profile_id) THEN
+        RAISE EXCEPTION 'PAYEE_WALLET_NOT_FOUND';
+    END IF;
+
+    -- 7. Check payer balance (verifies payer wallet exists and has sufficient funds)
     SELECT balance INTO v_payer_balance
     FROM public.wallets
     WHERE profile_id = p_payer;
