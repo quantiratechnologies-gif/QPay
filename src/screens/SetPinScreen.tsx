@@ -58,7 +58,7 @@ export const SetPinScreen: React.FC = () => {
               if (fromSettings) {
                 goBack();
               } else {
-                navigateTo('PERMISSIONS');
+                navigateTo('HOME');
               }
             }, 1000);
           } else {
