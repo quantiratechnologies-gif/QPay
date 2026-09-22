@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User as UserIcon, ArrowRight, Loader } from 'lucide-react';
+import { User as UserIcon, ArrowRight, Loader, ChevronDown } from 'lucide-react';
 import { AlphPayLogo } from '../components/AlphPayLogo';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useApp } from '../state/AppContext';
@@ -8,22 +8,41 @@ import { authService } from '../services/authService';
 export const MobileNumberScreen: React.FC = () => {
   const { navigateTo, updateUser, t, isRtl, language } = useApp();
   const [fullName, setFullName] = useState<string>('');
+  const [countryCode, setCountryCode] = useState<string>('+966');
   const [mobileNumber, setMobileNumber] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>('');
 
+  const cleanDigits = (() => {
+    let digits = mobileNumber.replace(/\D/g, '');
+    if (countryCode === '+966') {
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      return digits.slice(0, 9);
+    } else if (countryCode === '+91') {
+      if (digits.startsWith('0')) digits = digits.slice(1);
+      return digits.slice(0, 10);
+    }
+    return digits;
+  })();
+
+  const isPhoneValid = countryCode === '+966'
+    ? /^5\d{8}$/.test(cleanDigits)
+    : /^[6-9]\d{9}$/.test(cleanDigits);
+
+  const isFormValid = isPhoneValid && fullName.trim().length > 0 && !isLoading;
+
   const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (mobileNumber.length < 9 || fullName.trim().length === 0) return;
+    if (!isFormValid) return;
 
     setError('');
     setIsLoading(true);
 
-    const phone = `+966${mobileNumber}`;
+    const phone = `${countryCode}${cleanDigits}`;
     try {
       await authService.sendOtp(phone, 'customer');
-      updateUser({ name: fullName.trim(), mobile: `+966 ${mobileNumber}` });
-      navigateTo('SMS_OTP', { mobile: mobileNumber, phone, name: fullName.trim() });
+      updateUser({ name: fullName.trim(), mobile: `${countryCode} ${cleanDigits}` });
+      navigateTo('SMS_OTP', { mobile: cleanDigits, phone, name: fullName.trim() });
     } catch (err: any) {
       if (err.code === 'ROLE_MISMATCH') {
         setError(
@@ -138,7 +157,7 @@ export const MobileNumberScreen: React.FC = () => {
             </div>
           </div>
 
-          {/* Saudi Mobile Number Input */}
+          {/* Mobile Number Input with Country Selector */}
           <div>
             <label
               htmlFor="mobile-input"
@@ -152,7 +171,7 @@ export const MobileNumberScreen: React.FC = () => {
                 display: 'block',
               }}
             >
-              {t('auth.mobile_number', 'Saudi Mobile Number')}
+              {language === 'العربية' ? 'رقم الجوال' : (countryCode === '+91' ? 'Indian Mobile Number' : 'Saudi Mobile Number')}
             </label>
             <div
               style={{
@@ -165,43 +184,77 @@ export const MobileNumberScreen: React.FC = () => {
                 transition: 'border-color 0.2s ease',
               }}
             >
-              {/* Country Code Pill */}
+              {/* Country Code Selector Pill */}
               <div
                 style={{
+                  position: 'relative',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '6px',
-                  paddingInlineEnd: '12px',
-                  marginInlineEnd: '12px',
+                  paddingInlineEnd: '10px',
+                  marginInlineEnd: '10px',
                   borderInlineEnd: '1px solid #2C2C44',
-                  fontWeight: 800,
-                  fontSize: '14px',
-                  color: '#FFFFFF',
                 }}
               >
-                <span>🇸🇦</span>
-                <span dir="ltr">+966</span>
+                <select
+                  id="country-select"
+                  aria-label="Country Code"
+                  value={countryCode}
+                  onChange={(e) => {
+                    setCountryCode(e.target.value);
+                    setMobileNumber('');
+                    setError('');
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#FFFFFF',
+                    fontWeight: 800,
+                    fontSize: '14px',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    appearance: 'none',
+                    WebkitAppearance: 'none',
+                    paddingInlineEnd: '18px',
+                    direction: 'ltr',
+                  }}
+                >
+                  <option value="+966" style={{ background: '#151524', color: '#FFF' }}>🇸🇦 +966</option>
+                  <option value="+91" style={{ background: '#151524', color: '#FFF' }}>🇮🇳 +91</option>
+                </select>
+                <ChevronDown size={14} color="#7FE87F" style={{ position: 'absolute', right: '4px', pointerEvents: 'none' }} />
               </div>
 
               <input
                 id="mobile-input"
                 type="tel"
                 value={
-                  mobileNumber.length <= 2
-                    ? mobileNumber
-                    : mobileNumber.length <= 5
-                    ? `${mobileNumber.slice(0, 2)} ${mobileNumber.slice(2)}`
-                    : `${mobileNumber.slice(0, 2)} ${mobileNumber.slice(2, 5)} ${mobileNumber.slice(5, 9)}`
+                  countryCode === '+966'
+                    ? (cleanDigits.length <= 2
+                        ? cleanDigits
+                        : cleanDigits.length <= 5
+                        ? `${cleanDigits.slice(0, 2)} ${cleanDigits.slice(2)}`
+                        : `${cleanDigits.slice(0, 2)} ${cleanDigits.slice(2, 5)} ${cleanDigits.slice(5)}`)
+                    : (cleanDigits.length <= 5
+                        ? cleanDigits
+                        : `${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`)
                 }
                 onChange={(e) => {
                   let val = e.target.value.replace(/\D/g, '');
-                  if (val.startsWith('009665')) val = val.substring(5);
-                  else if (val.startsWith('9665')) val = val.substring(3);
-                  else if (val.startsWith('05')) val = val.substring(1);
-                  setMobileNumber(val.slice(0, 9));
+                  if (countryCode === '+966') {
+                    if (val.startsWith('00966')) val = val.slice(5);
+                    else if (val.startsWith('966')) val = val.slice(3);
+                    if (val.startsWith('0')) val = val.slice(1);
+                    val = val.slice(0, 9);
+                  } else if (countryCode === '+91') {
+                    if (val.startsWith('0091')) val = val.slice(4);
+                    else if (val.startsWith('91') && val.length > 10) val = val.slice(2);
+                    if (val.startsWith('0')) val = val.slice(1);
+                    val = val.slice(0, 10);
+                  }
+                  setMobileNumber(val);
                 }}
-                placeholder="50 123 4567"
-                maxLength={12}
+                placeholder={countryCode === '+91' ? '98765 43210' : '50 123 4567'}
+                maxLength={countryCode === '+91' ? 11 : 12}
                 required
                 style={{
                   background: 'none',
@@ -242,7 +295,7 @@ export const MobileNumberScreen: React.FC = () => {
           <div style={{ marginTop: '6px' }}>
             <PrimaryButton
               type="submit"
-              disabled={mobileNumber.length < 9 || fullName.trim().length === 0 || isLoading}
+              disabled={!isFormValid}
             >
               {isLoading ? (
                 <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />

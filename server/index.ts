@@ -118,6 +118,7 @@ async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?
       { method: 'POST', headers: { 'Content-Type': 'application/json' } }
     );
     const data = (await res.json()) as any;
+    console.log(`[MSG91] Send OTP to ${cleanPhone} response status: ${res.status}, body:`, data);
     return { success: data.type === 'success' || res.ok, message: data.message };
   } catch (err: any) {
     console.error('[MSG91] Send OTP error:', err.message);
@@ -226,12 +227,14 @@ function normalizePhone(phone: string): string {
   let clean = phone.replace(/[\s\-()]+/g, '');
 
   // Saudi numbers
-  if (clean.startsWith('00966')) clean = '+966' + clean.slice(5);
+  if (clean.startsWith('+9660')) clean = '+966' + clean.slice(5);
+  else if (clean.startsWith('00966')) clean = '+966' + clean.slice(5);
   else if (clean.startsWith('966')) clean = '+' + clean;
   else if (clean.startsWith('05') && clean.length === 10) clean = '+966' + clean.slice(1);
   else if (clean.startsWith('5') && clean.length === 9) clean = '+966' + clean;
 
   // Indian numbers
+  else if (clean.startsWith('+910')) clean = '+91' + clean.slice(4);
   else if (clean.startsWith('0091')) clean = '+91' + clean.slice(4);
   else if (clean.startsWith('91') && clean.length === 12) clean = '+' + clean;
   else if (clean.startsWith('0') && clean.length === 11 && /^[6-9]/.test(clean.slice(1))) clean = '+91' + clean.slice(1);
