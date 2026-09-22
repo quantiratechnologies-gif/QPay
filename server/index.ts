@@ -618,6 +618,27 @@ app.post('/api/payments', authMiddleware, async (req: AuthRequest, res: express.
         });
         return;
       }
+      if (error.code === '23505' || msg.includes('duplicate key') || msg.includes('transactions_order_ref_key')) {
+        const { data: existingTx } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('order_ref', idempotencyKey)
+          .maybeSingle();
+
+        if (existingTx && existingTx.payer_profile_id === req.profileId) {
+          const { data: wallet } = await supabase
+            .from('wallets')
+            .select('balance')
+            .eq('profile_id', req.profileId)
+            .single();
+
+          res.json({
+            transaction: existingTx,
+            balance: wallet?.balance ?? 0,
+          });
+          return;
+        }
+      }
       console.error('[/api/payments] RPC error:', error);
       res.status(500).json({
         error: 'PAYMENT_FAILED',
