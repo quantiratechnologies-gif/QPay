@@ -304,7 +304,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         { id: 'm-1', name: 'Tariq Al-Otaibi', upiId: 'tariq@sarie', avatarInitials: 'TO', amount: 300.0, hasPaid: true },
         { id: 'm-2', name: 'Sara Al-Mansoor', upiId: 'sara@sarie', avatarInitials: 'SM', amount: 300.0, hasPaid: false },
         { id: 'm-3', name: 'Mohammed Al-Ghamdi', upiId: 'mohammed@sarie', avatarInitials: 'MG', amount: 300.0, hasPaid: false },
-        { id: 'm-4', name: 'Fahad Al-Harbi (You)', upiId: 'fahad@sarie', avatarInitials: 'FA', amount: 300.0, hasPaid: true },
+        { id: 'm-4', name: user.name ? `${user.name} (You)` : 'You', upiId: user.upiId || 'you@sarie', avatarInitials: user.avatarInitials || 'ME', amount: 300.0, hasPaid: true },
       ],
     },
   ]);
