@@ -10,7 +10,7 @@ import { setRealtimeAuth } from '../services/supabaseClient';
 export const SmsOtpScreen: React.FC = () => {
   const { navigateTo, screenParams, goBack, t, isRtl, language, updateUser, setAuthToken } = useApp();
   const mobile = screenParams.mobile || '';
-  const phone = screenParams.phone || `+966${mobile}`;
+  const phone = screenParams.phone || (mobile.startsWith('+') ? mobile : `+966${mobile}`);
   const fullName = screenParams.name || '';
 
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
@@ -173,7 +173,7 @@ export const SmsOtpScreen: React.FC = () => {
           <p style={{ fontSize: '13px', color: '#A2A2BA', margin: '0 0 10px 0' }}>
             {t('auth.otp_sent_to', 'Sent via SMS to')}{' '}
             <span style={{ color: 'var(--brand-green, #7FE87F)', fontWeight: 700 }} dir="ltr">
-              +966 {mobile}
+              {phone || `+966 ${mobile}`}
             </span>
           </p>
           <button

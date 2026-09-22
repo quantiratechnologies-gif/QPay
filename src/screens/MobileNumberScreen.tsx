@@ -25,6 +25,21 @@ export const MobileNumberScreen: React.FC = () => {
     return digits;
   })();
 
+  const mismatchWarning = (() => {
+    if (!cleanDigits) return null;
+    if (countryCode === '+966' && !cleanDigits.startsWith('5')) {
+      return language === 'العربية'
+        ? '⚠️ الأرقام السعودية تبدأ بـ 5. للأرقام الهندية اختر 🇮🇳 +91 أعلاه.'
+        : '⚠️ Saudi numbers must start with 5. For Indian numbers, select 🇮🇳 +91 above.';
+    }
+    if (countryCode === '+91' && !/^[6-9]/.test(cleanDigits)) {
+      return language === 'العربية'
+        ? '⚠️ الأرقام الهندية تبدأ بـ 6-9. للأرقام السعودية اختر 🇸🇦 +966 أعلاه.'
+        : '⚠️ Indian numbers must start with 6-9. For Saudi numbers, select 🇸🇦 +966 above.';
+    }
+    return null;
+  })();
+
   const isPhoneValid = countryCode === '+966'
     ? /^5\d{8}$/.test(cleanDigits)
     : /^[6-9]\d{9}$/.test(cleanDigits);
@@ -33,7 +48,33 @@ export const MobileNumberScreen: React.FC = () => {
 
   const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!isFormValid) return;
+
+    if (!fullName.trim()) {
+      setError(language === 'العربية' ? 'يرجى إدخال الاسم الكامل' : 'Please enter your full legal name');
+      return;
+    }
+
+    if (countryCode === '+966') {
+      if (!cleanDigits.startsWith('5') || cleanDigits.length !== 9) {
+        setError(
+          language === 'العربية'
+            ? 'رقم الجوال السعودي غير صحيح. يجب أن يبدأ بالرقم 5 ويتكون من 9 أرقام (مثال: 50 123 4567). للأرقام الهندية يرجى اختيار 🇮🇳 +91.'
+            : 'Invalid Saudi mobile number. Must start with 5 and be 9 digits (e.g. 50 123 4567). For Indian numbers, select 🇮🇳 +91.'
+        );
+        return;
+      }
+    } else if (countryCode === '+91') {
+      if (!/^[6-9]/.test(cleanDigits) || cleanDigits.length !== 10) {
+        setError(
+          language === 'العربية'
+            ? 'رقم الجوال الهندي غير صحيح. يجب أن يبدأ بالأرقام 6-9 ويتكون من 10 أرقام (مثال: 98765 43210). للأرقام السعودية يرجى اختيار 🇸🇦 +966.'
+            : 'Invalid Indian mobile number. Must start with 6-9 and be 10 digits (e.g. 98765 43210). For Saudi numbers, select 🇸🇦 +966.'
+        );
+        return;
+      }
+    }
+
+    if (!isPhoneValid) return;
 
     setError('');
     setIsLoading(true);
@@ -42,7 +83,7 @@ export const MobileNumberScreen: React.FC = () => {
     try {
       await authService.sendOtp(phone, 'customer');
       updateUser({ name: fullName.trim(), mobile: `${countryCode} ${cleanDigits}` });
-      navigateTo('SMS_OTP', { mobile: cleanDigits, phone, name: fullName.trim() });
+      navigateTo('SMS_OTP', { mobile: cleanDigits, phone, countryCode, name: fullName.trim() });
     } catch (err: any) {
       if (err.code === 'ROLE_MISMATCH') {
         setError(
@@ -239,7 +280,29 @@ export const MobileNumberScreen: React.FC = () => {
                         : `${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`)
                 }
                 onChange={(e) => {
-                  let val = e.target.value.replace(/\D/g, '');
+                  let raw = e.target.value;
+                  setError('');
+                  // Auto-switch country if user pasted +91 or +966 prefix
+                  if (raw.includes('+91') || raw.startsWith('0091')) {
+                    setCountryCode('+91');
+                    let val = raw.replace(/\D/g, '');
+                    if (val.startsWith('0091')) val = val.slice(4);
+                    else if (val.startsWith('91')) val = val.slice(2);
+                    if (val.startsWith('0')) val = val.slice(1);
+                    setMobileNumber(val.slice(0, 10));
+                    return;
+                  }
+                  if (raw.includes('+966') || raw.startsWith('00966')) {
+                    setCountryCode('+966');
+                    let val = raw.replace(/\D/g, '');
+                    if (val.startsWith('00966')) val = val.slice(5);
+                    else if (val.startsWith('966')) val = val.slice(3);
+                    if (val.startsWith('0')) val = val.slice(1);
+                    setMobileNumber(val.slice(0, 9));
+                    return;
+                  }
+
+                  let val = raw.replace(/\D/g, '');
                   if (countryCode === '+966') {
                     if (val.startsWith('00966')) val = val.slice(5);
                     else if (val.startsWith('966')) val = val.slice(3);
@@ -271,6 +334,20 @@ export const MobileNumberScreen: React.FC = () => {
                 }}
               />
             </div>
+            {/* Live Country / Format Mismatch Warning */}
+            {mismatchWarning && (
+              <div
+                style={{
+                  marginTop: '6px',
+                  fontSize: '11.5px',
+                  fontWeight: 600,
+                  color: '#FBBF24',
+                  lineHeight: '1.4',
+                }}
+              >
+                {mismatchWarning}
+              </div>
+            )}
           </div>
 
           {/* Error Banner */}

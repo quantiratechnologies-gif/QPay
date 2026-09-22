@@ -83,7 +83,7 @@ export const TRANSLATIONS: Record<string, { en: string; ar: string }> = {
   'auth.full_name': { en: 'Full Legal Name', ar: 'الاسم الكامل' },
   'auth.mobile_number': { en: 'Saudi Mobile Number', ar: 'رقم الجوال السعودي' },
   'auth.get_otp': { en: 'Get OTP & Verify', ar: 'الحصول على رمز التحقق' },
-  'auth.enter_otp': { en: 'Enter 4-Digit OTP', ar: 'أدخل رمز التحقق المكون من ٤ أرقام' },
+  'auth.enter_otp': { en: 'Enter 6-Digit OTP', ar: 'أدخل رمز التحقق المكون من ٦ أرقام' },
   'auth.otp_sent_to': { en: 'Sent via SMS to', ar: 'تم الإرسال عبر رسالة نصية إلى' },
   'auth.resend_otp': { en: 'Resend OTP in', ar: 'إعادة الإرسال بعد' },
   'auth.resend_now': { en: 'Resend OTP', ar: 'إعادة إرسال الرمز' },

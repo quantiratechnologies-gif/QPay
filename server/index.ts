@@ -255,6 +255,12 @@ function normalizePhone(phone: string): string {
   return clean;
 }
 
+function isValidPhone(phone: string): boolean {
+  // Saudi: +9665XXXXXXXX (exactly +966 followed by 5 and 8 digits)
+  // India: +91[6-9]XXXXXXXXX (exactly +91 followed by 6-9 and 9 digits)
+  return /^\+9665\d{8}$/.test(phone) || /^\+91[6-9]\d{9}$/.test(phone);
+}
+
 // ===========================================================================
 // ROUTES
 // ===========================================================================
@@ -273,6 +279,14 @@ app.post('/api/auth/otp/send', async (req: express.Request, res: express.Respons
     }
 
     const normalizedPhone = normalizePhone(phone);
+    if (!isValidPhone(normalizedPhone)) {
+      res.status(400).json({
+        error: 'INVALID_PHONE',
+        message: 'Invalid phone number format. Must be a valid Saudi (+966 5XXXXXXXX) or Indian (+91 [6-9]XXXXXXXXX) mobile number.',
+      });
+      return;
+    }
+
     if (!checkOtpRate(normalizedPhone)) {
       res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many OTP requests. Try again later.' });
       return;
@@ -318,6 +332,14 @@ app.post('/api/auth/otp/resend', async (req: express.Request, res: express.Respo
     }
 
     const normalizedPhone = normalizePhone(phone);
+    if (!isValidPhone(normalizedPhone)) {
+      res.status(400).json({
+        error: 'INVALID_PHONE',
+        message: 'Invalid phone number format. Must be a valid Saudi (+966 5XXXXXXXX) or Indian (+91 [6-9]XXXXXXXXX) mobile number.',
+      });
+      return;
+    }
+
     if (!checkOtpRate(normalizedPhone)) {
       res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many OTP requests. Try again later.' });
       return;
@@ -348,6 +370,10 @@ app.post('/api/auth/otp/verify', async (req: express.Request, res: express.Respo
       res.status(400).json({ error: 'MISSING_FIELDS', message: 'phone and otp are required' });
       return;
     }
+    if (String(otp).length !== 6) {
+      res.status(400).json({ error: 'INVALID_OTP_LENGTH', message: 'OTP must be 6 digits' });
+      return;
+    }
     const effectiveRole = role || 'customer';
     if (!['customer', 'merchant'].includes(effectiveRole)) {
       res.status(400).json({ error: 'INVALID_ROLE', message: 'Role must be customer or merchant' });
@@ -355,6 +381,13 @@ app.post('/api/auth/otp/verify', async (req: express.Request, res: express.Respo
     }
 
     const normalizedPhone = normalizePhone(phone);
+    if (!isValidPhone(normalizedPhone)) {
+      res.status(400).json({
+        error: 'INVALID_PHONE',
+        message: 'Invalid phone number format. Must be a valid Saudi (+966 5XXXXXXXX) or Indian (+91 [6-9]XXXXXXXXX) mobile number.',
+      });
+      return;
+    }
 
     // Verify OTP with MSG91
     const verifyResult = await msg91VerifyOtp(normalizedPhone, otp);
