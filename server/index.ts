@@ -464,17 +464,25 @@ app.get('/api/me', authMiddleware, async (req: AuthRequest, res: express.Respons
       .eq('profile_id', req.profileId)
       .single();
 
-    let merchantInfo: any = null;
+    let merchantData: any = null;
     if (profile.role === 'merchant') {
       const { data: merchant } = await supabase
         .from('merchants')
         .select('merchant_code, business_name')
         .eq('profile_id', req.profileId)
         .maybeSingle();
-      merchantInfo = merchant;
+      merchantData = merchant;
     }
 
     res.json({
+      id: profile.id,
+      name: profile.full_name,
+      mobile: profile.mobile,
+      role: profile.role,
+      merchantCode: merchantData?.merchant_code,
+      businessName: merchantData?.business_name,
+      walletBalance: Number(wallet?.balance || 0),
+      walletCurrency: wallet?.currency || 'SAR',
       profile: {
         id: profile.id,
         name: profile.full_name,
@@ -482,8 +490,13 @@ app.get('/api/me', authMiddleware, async (req: AuthRequest, res: express.Respons
         role: profile.role,
         avatarInitials: profile.avatar_initials,
       },
-      wallet: wallet || { balance: 0, currency: 'SAR' },
-      merchant: merchantInfo,
+      wallet: wallet ? { balance: Number(wallet.balance), currency: wallet.currency } : { balance: 0, currency: 'SAR' },
+      merchant: merchantData ? {
+        merchantCode: merchantData.merchant_code,
+        merchant_code: merchantData.merchant_code,
+        businessName: merchantData.business_name,
+        business_name: merchantData.business_name,
+      } : null,
     });
   } catch (err: any) {
     console.error('[/api/me]', err);
