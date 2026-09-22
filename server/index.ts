@@ -32,6 +32,7 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || '';
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || '';
 const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID || '';
+const OTP_SANDBOX = process.env.OTP_SANDBOX === 'true';
 
 // ---------------------------------------------------------------------------
 // Supabase clients
@@ -97,6 +98,10 @@ function checkOtpRate(phone: string): boolean {
 // MSG91 helpers
 // ---------------------------------------------------------------------------
 async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?: string }> {
+  if (OTP_SANDBOX) {
+    console.log(`[OTP_SANDBOX] Simulated OTP sent to ${phone}`);
+    return { success: true, message: 'OTP sent (sandbox mode - use 123456)' };
+  }
   const cleanPhone = phone.replace(/\s+/g, '').replace(/^\+/, '');
   try {
     const res = await fetch(
@@ -112,6 +117,9 @@ async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?
 }
 
 async function msg91ResendOtp(phone: string): Promise<{ success: boolean; message?: string }> {
+  if (OTP_SANDBOX) {
+    return { success: true, message: 'OTP resent (sandbox mode - use 123456)' };
+  }
   const cleanPhone = phone.replace(/\s+/g, '').replace(/^\+/, '');
   try {
     const res = await fetch(
@@ -127,6 +135,13 @@ async function msg91ResendOtp(phone: string): Promise<{ success: boolean; messag
 }
 
 async function msg91VerifyOtp(phone: string, otp: string): Promise<{ success: boolean; message?: string }> {
+  if (OTP_SANDBOX) {
+    console.log(`[OTP_SANDBOX] Verifying ${phone} with OTP: ${otp}`);
+    if (otp && (otp.length === 6 || otp === '123456')) {
+      return { success: true, message: 'OTP verified (sandbox mode)' };
+    }
+    return { success: false, message: 'Invalid OTP length (expected 6 digits)' };
+  }
   const cleanPhone = phone.replace(/\s+/g, '').replace(/^\+/, '');
   try {
     const res = await fetch(
