@@ -129,7 +129,7 @@ body.rtl {
 /* Responsive Browser Viewport (Supports All Devices: Mobile, Tablet, Desktop, Notch Devices) */
 .app-viewport {
   width: 100%;
-  max-width: 600px;
+  max-width: 430px;
   min-height: 100vh;
   min-height: 100dvh;
   height: 100vh;
@@ -139,8 +139,9 @@ body.rtl {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-left: 1px solid var(--border-color);
-  border-right: 1px solid var(--border-color);
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.7);
   border-top: none;
   border-bottom: none;
   border-radius: 0 !important;
@@ -148,11 +149,12 @@ body.rtl {
   box-sizing: border-box;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 440px) {
   .app-viewport {
     max-width: 100%;
     border-left: none;
     border-right: none;
+    box-shadow: none;
   }
 }
 
