@@ -359,7 +359,8 @@ app.post('/api/auth/otp/verify', async (req: express.Request, res: express.Respo
       // Create new profile
       const name = fullName || 'QPay User';
       const initials = name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'QP';
-      const upiId = `${normalizedPhone.slice(-4)}@sarie`;
+      const cleanPhone = normalizedPhone.replace(/\D/g, '');
+      const upiId = `${cleanPhone}@sarie`;
 
       const { data: newProfile, error: insertErr } = await supabase
         .from('profiles')
