@@ -526,20 +526,67 @@ app.post('/api/payments', authMiddleware, async (req: AuthRequest, res: express.
 
     if (error) {
       const msg = error.message || '';
+      if (msg.includes('INVALID_AMOUNT')) {
+        res.status(400).json({
+          error: 'INVALID_AMOUNT',
+          message: 'Invalid payment amount / مبلغ الدفع غير صالح',
+          message_en: 'Invalid payment amount',
+          message_ar: 'مبلغ الدفع غير صالح',
+        });
+        return;
+      }
+      if (msg.includes('PAYEE_WALLET_NOT_FOUND')) {
+        res.status(400).json({
+          error: 'PAYEE_WALLET_NOT_FOUND',
+          message: 'Merchant wallet not found / محفظة التاجر غير موجودة',
+          message_en: 'Merchant wallet not found',
+          message_ar: 'محفظة التاجر غير موجودة',
+        });
+        return;
+      }
+      if (msg.includes('IDEMPOTENCY_KEY_CONFLICT')) {
+        res.status(409).json({
+          error: 'IDEMPOTENCY_KEY_CONFLICT',
+          message: 'Transaction reference conflict / تعارض في مرجع المعاملة',
+          message_en: 'Transaction reference conflict',
+          message_ar: 'تعارض في مرجع المعاملة',
+        });
+        return;
+      }
       if (msg.includes('INSUFFICIENT_BALANCE')) {
-        res.status(400).json({ error: 'INSUFFICIENT_BALANCE', message: 'Insufficient wallet balance' });
+        res.status(400).json({
+          error: 'INSUFFICIENT_BALANCE',
+          message: 'Insufficient wallet balance / رصيد المحفظة غير كافٍ',
+          message_en: 'Insufficient wallet balance',
+          message_ar: 'رصيد المحفظة غير كافٍ',
+        });
         return;
       }
       if (msg.includes('INVALID_MERCHANT')) {
-        res.status(400).json({ error: 'INVALID_MERCHANT', message: 'Merchant not found' });
+        res.status(400).json({
+          error: 'INVALID_MERCHANT',
+          message: 'Merchant not found / التاجر غير موجود',
+          message_en: 'Merchant not found',
+          message_ar: 'التاجر غير موجود',
+        });
         return;
       }
       if (msg.includes('SELF_PAYMENT')) {
-        res.status(400).json({ error: 'SELF_PAYMENT', message: 'Cannot pay yourself' });
+        res.status(400).json({
+          error: 'SELF_PAYMENT',
+          message: 'Cannot pay yourself / لا يمكن الدفع لحسابك الخاص',
+          message_en: 'Cannot pay yourself',
+          message_ar: 'لا يمكن الدفع لحسابك الخاص',
+        });
         return;
       }
       console.error('[/api/payments] RPC error:', error);
-      res.status(500).json({ error: 'PAYMENT_FAILED', message: 'Payment processing failed' });
+      res.status(500).json({
+        error: 'PAYMENT_FAILED',
+        message: 'Payment processing failed / فشلت عملية معالجة الدفع',
+        message_en: 'Payment processing failed',
+        message_ar: 'فشلت عملية معالجة الدفع',
+      });
       return;
     }
 
