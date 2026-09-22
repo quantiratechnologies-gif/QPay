@@ -34,6 +34,15 @@ const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || '';
 const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID || '';
 const OTP_SANDBOX = process.env.OTP_SANDBOX === 'true';
 
+// Production safety check: refuse to start if sandbox mode is enabled in production
+if (OTP_SANDBOX && process.env.NODE_ENV === 'production') {
+  throw new Error('FATAL: OTP_SANDBOX cannot be enabled in production environment (NODE_ENV=production). Refusing to start.');
+}
+
+if (OTP_SANDBOX) {
+  console.warn('\x1b[33m%s\x1b[0m', '⚠️  [SECURITY WARNING] OTP_SANDBOX IS ACTIVE! Real SMS delivery via MSG91 is bypassed. Code 123456 is accepted for all numbers. Do NOT use in production.');
+}
+
 // ---------------------------------------------------------------------------
 // Supabase clients
 // ---------------------------------------------------------------------------
