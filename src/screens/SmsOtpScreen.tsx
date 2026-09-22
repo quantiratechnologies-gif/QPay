@@ -93,7 +93,7 @@ export const SmsOtpScreen: React.FC = () => {
       if (!hasPin) {
         navigateTo('SET_PIN');
       } else {
-        navigateTo('PERMISSIONS');
+        navigateTo('HOME');
       }
     } catch (err: any) {
       setErrorMsg(

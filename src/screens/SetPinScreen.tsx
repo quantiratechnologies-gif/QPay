@@ -14,6 +14,15 @@ export const SetPinScreen: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [isSuccess, setIsSuccess] = useState<boolean>(false);
 
+  const isWeakPin = (val: string): boolean => {
+    if (/^(\d)\1{3}$/.test(val)) return true;
+    const seqAsc = '0123456789';
+    const seqDesc = '9876543210';
+    if (seqAsc.includes(val) || seqDesc.includes(val)) return true;
+    if (['1122', '1212', '2580', '1379'].includes(val)) return true;
+    return false;
+  };
+
   const handleKeyPress = (digit: string) => {
     setErrorMsg('');
     if (step === 'create') {
@@ -21,6 +30,17 @@ export const SetPinScreen: React.FC = () => {
         const next = pin + digit;
         setPin(next);
         if (next.length === 4) {
+          if (isWeakPin(next)) {
+            setErrorMsg(
+              isAr
+                ? 'هذا الرمز ضعيف وسهل التخمين. يرجى اختيار رمز أقوى.'
+                : 'PIN is too weak or easy to guess. Choose a stronger PIN.'
+            );
+            setTimeout(() => {
+              setPin('');
+            }, 600);
+            return;
+          }
           setTimeout(() => {
             setStep('confirm');
           }, 250);

@@ -9,6 +9,9 @@ export const PayBillPinModal: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
 
+  const [failedAttempts, setFailedAttempts] = useState<number>(0);
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+
   // Reset errors whenever the modal opens or closes
   useEffect(() => {
     if (isPinModalOpen) {
@@ -27,6 +30,16 @@ export const PayBillPinModal: React.FC = () => {
   const displayBankIban = primaryBank ? primaryBank.accountNumberMasked : 'SA03 •••• 4821';
 
   const handlePinComplete = async (pin: string) => {
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remainingSec = Math.ceil((lockoutUntil - Date.now()) / 1000);
+      setError(
+        language === 'العربية'
+          ? `يرجى الانتظار ${remainingSec} ثانية قبل المحاولة مجدداً`
+          : `Please wait ${remainingSec}s before retrying`
+      );
+      return;
+    }
+
     setIsVerifying(true);
     setError('');
     try {
@@ -34,12 +47,32 @@ export const PayBillPinModal: React.FC = () => {
       await new Promise((res) => setTimeout(res, 120));
       const isValid = verifyUserPin(pin);
       if (isValid) {
+        setFailedAttempts(0);
+        setLockoutUntil(null);
         closePinModal();
         if (pendingPaymentData.onSuccess) {
           pendingPaymentData.onSuccess();
         }
       } else {
-        setError(language === 'العربية' ? 'الرمز غير صحيح، حاول مرة أخرى' : 'Incorrect PIN, Try Again');
+        const nextAttempts = failedAttempts + 1;
+        if (nextAttempts >= 3) {
+          const lockedTime = Date.now() + 30000;
+          setLockoutUntil(lockedTime);
+          setFailedAttempts(0);
+          setError(
+            language === 'العربية'
+              ? 'تم تجاوز عدد المحاولات المسموح بها. تم قفل الإدخال لمدة 30 ثانية.'
+              : 'Too many incorrect attempts. Locked for 30 seconds.'
+          );
+        } else {
+          setFailedAttempts(nextAttempts);
+          const remaining = 3 - nextAttempts;
+          setError(
+            language === 'العربية'
+              ? `الرمز غير صحيح. (${remaining} محاولات متبقية)`
+              : `Incorrect PIN. (${remaining} attempt${remaining > 1 ? 's' : ''} left)`
+          );
+        }
       }
     } catch (err) {
       setError(language === 'العربية' ? 'فشل التحقق من الرمز' : 'Verification failed');
@@ -105,21 +138,6 @@ export const PayBillPinModal: React.FC = () => {
               : (language === 'العربية' ? 'أدخل الرمز السري المكون من ٤ أرقام' : 'Enter 4-Digit PIN')
           }
         />
-
-        {/* Subtle Demo Helper */}
-        <div
-          style={{
-            marginTop: '14px',
-            textAlign: 'center',
-            fontSize: '11px',
-            color: '#6b7280',
-            letterSpacing: '0.3px',
-          }}
-        >
-          {language === 'العربية'
-            ? 'الرمز الافتراضي: 1234'
-            : 'Default PIN: 1234'}
-        </div>
       </div>
     </BottomSheet>
   );

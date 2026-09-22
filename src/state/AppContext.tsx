@@ -448,9 +448,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // MPIN & OTP Security State
   const [userPin, setUserPinState] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('qpay_user_pin') || '1234';
+      return localStorage.getItem('qpay_user_pin') || '';
     }
-    return '1234';
+    return '';
   });
 
   const setUserPin = (pin: string) => {
@@ -461,6 +461,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const verifyUserPin = (pin: string): boolean => {
+    if (!userPin) return false;
     return pin === userPin;
   };
 

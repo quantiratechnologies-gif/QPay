@@ -37,7 +37,7 @@ export const UPISettingsScreen: React.FC = () => {
       return;
     }
     if (!verifyUserPin(oldPin)) {
-      setPinError(language === 'العربية' ? 'الرمز القديم غير صحيح' : 'Old PIN is incorrect (Default: 1234)');
+      setPinError(language === 'العربية' ? 'الرمز القديم غير صحيح' : 'Old PIN is incorrect');
       return;
     }
     if (newPin.length !== 4) {
