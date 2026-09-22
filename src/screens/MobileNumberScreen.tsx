@@ -54,7 +54,7 @@ export const MobileNumberScreen: React.FC = () => {
         setError(
           language === 'العربية'
             ? 'تعذر إرسال رمز التحقق. حاول مجدداً.'
-            : err.message || 'Failed to send OTP. Please try again.'
+            : err.message || 'Could not send OTP, please try again'
         );
       }
     } finally {

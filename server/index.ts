@@ -106,7 +106,7 @@ function checkOtpRate(phone: string): boolean {
 // ---------------------------------------------------------------------------
 // MSG91 helpers
 // ---------------------------------------------------------------------------
-async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?: string }> {
+async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?: string; status?: number }> {
   if (OTP_SANDBOX) {
     console.log(`[OTP_SANDBOX] Simulated OTP sent to ${phone}`);
     return { success: true, message: 'OTP sent (sandbox mode - use 123456)' };
@@ -119,14 +119,19 @@ async function msg91SendOtp(phone: string): Promise<{ success: boolean; message?
     );
     const data = (await res.json()) as any;
     console.log(`[MSG91] Send OTP to ${cleanPhone} response status: ${res.status}, body:`, data);
-    return { success: data.type === 'success' || res.ok, message: data.message };
+    const isSuccess = res.ok && res.status >= 200 && res.status < 300 && data.type === 'success';
+    return {
+      success: isSuccess,
+      message: data.message || (isSuccess ? 'OTP sent successfully' : 'Could not send OTP, please try again'),
+      status: res.status,
+    };
   } catch (err: any) {
     console.error('[MSG91] Send OTP error:', err.message);
-    return { success: false, message: err.message };
+    return { success: false, message: err.message || 'Could not send OTP, please try again' };
   }
 }
 
-async function msg91ResendOtp(phone: string): Promise<{ success: boolean; message?: string }> {
+async function msg91ResendOtp(phone: string): Promise<{ success: boolean; message?: string; status?: number }> {
   if (OTP_SANDBOX) {
     return { success: true, message: 'OTP resent (sandbox mode - use 123456)' };
   }
@@ -137,10 +142,16 @@ async function msg91ResendOtp(phone: string): Promise<{ success: boolean; messag
       { method: 'POST', headers: { 'Content-Type': 'application/json' } }
     );
     const data = (await res.json()) as any;
-    return { success: data.type === 'success' || res.ok, message: data.message };
+    console.log(`[MSG91] Resend OTP to ${cleanPhone} response status: ${res.status}, body:`, data);
+    const isSuccess = res.ok && res.status >= 200 && res.status < 300 && data.type === 'success';
+    return {
+      success: isSuccess,
+      message: data.message || (isSuccess ? 'OTP resent successfully' : 'Could not send OTP, please try again'),
+      status: res.status,
+    };
   } catch (err: any) {
     console.error('[MSG91] Resend OTP error:', err.message);
-    return { success: false, message: err.message };
+    return { success: false, message: err.message || 'Could not send OTP, please try again' };
   }
 }
 
@@ -282,7 +293,11 @@ app.post('/api/auth/otp/send', async (req: express.Request, res: express.Respons
 
     const result = await msg91SendOtp(normalizedPhone);
     if (!result.success) {
-      res.status(502).json({ error: 'OTP_SEND_FAILED', message: result.message || 'Failed to send OTP' });
+      res.status(502).json({
+        error: 'OTP_SEND_FAILED',
+        message: 'Could not send OTP, please try again',
+        details: result.message,
+      });
       return;
     }
 
@@ -310,7 +325,11 @@ app.post('/api/auth/otp/resend', async (req: express.Request, res: express.Respo
 
     const result = await msg91ResendOtp(normalizedPhone);
     if (!result.success) {
-      res.status(502).json({ error: 'OTP_RESEND_FAILED', message: result.message || 'Failed to resend OTP' });
+      res.status(502).json({
+        error: 'OTP_RESEND_FAILED',
+        message: 'Could not send OTP, please try again',
+        details: result.message,
+      });
       return;
     }
 
