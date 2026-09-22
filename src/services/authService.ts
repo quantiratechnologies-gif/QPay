@@ -4,8 +4,7 @@
  */
 
 import { session, SESSION_KEYS } from './sessionStorage';
-
-const API_BASE = '/api';
+import { API_BASE } from './apiConfig';
 
 export interface AuthUser {
   id: string;

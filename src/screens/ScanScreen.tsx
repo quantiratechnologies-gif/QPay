@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Flashlight, Keyboard, CheckCircle, Store } from 'lucide-react';
 import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
+import { API_BASE } from '../services/apiConfig';
 
 export const ScanScreen: React.FC = () => {
   const { isScanModalOpen, setIsScanModalOpen, navigateTo, t, language, accessToken, currentScreen } = useApp();
@@ -103,7 +104,7 @@ export const ScanScreen: React.FC = () => {
     setResolveError(null);
     setIsResolving(true);
     try {
-      const res = await fetch(`/api/merchants/${code.toUpperCase()}`, {
+      const res = await fetch(`${API_BASE}/merchants/${code.toUpperCase()}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       if (!res.ok) {

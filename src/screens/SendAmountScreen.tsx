@@ -5,6 +5,7 @@ import { useApp } from '../state/AppContext';
 import { ShieldCheck, MessageSquare, Loader } from 'lucide-react';
 import { toArabicNumerals } from '../utils/i18n';
 import { formatCurrency } from '../utils/formatters';
+import { API_BASE } from '../services/apiConfig';
 
 export const SendAmountScreen: React.FC = () => {
   const { screenParams, openPinModal, navigateTo, walletBalance, setWalletBalance, t, language, accessToken } = useApp();
@@ -38,7 +39,7 @@ export const SendAmountScreen: React.FC = () => {
       onSuccess: async () => {
         setIsLoading(true);
         try {
-          const res = await fetch('/api/payments', {
+          const res = await fetch(`${API_BASE}/payments`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

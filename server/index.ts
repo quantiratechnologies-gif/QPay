@@ -75,13 +75,34 @@ const supabase = new Proxy({} as SupabaseClient, {
 const app = express();
 
 app.use(express.json());
+const allowedOriginsEnv = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
+const defaultOrigins = [
+  'https://qpay-merchant.vercel.app',
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+];
+
 app.use(
   cors({
-    origin: [
-      'https://qpay-merchant.vercel.app',
-      /^http:\/\/localhost(:\d+)?$/,
-      /^http:\/\/127\.0\.0\.1(:\d+)?$/,
-    ],
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+
+      // Check ALLOWED_ORIGINS env var matches
+      if (allowedOriginsEnv.includes(origin)) return callback(null, true);
+
+      // Check default origins (localhost regex or preset origins)
+      for (const allowed of defaultOrigins) {
+        if (typeof allowed === 'string' && allowed === origin) return callback(null, true);
+        if (allowed instanceof RegExp && allowed.test(origin)) return callback(null, true);
+      }
+
+      callback(new Error(`Not allowed by CORS: ${origin}`));
+    },
     credentials: true,
   })
 );

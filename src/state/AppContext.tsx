@@ -21,6 +21,7 @@ import { billPaymentService } from '../services/billPaymentService';
 import { translateText, type SupportedLanguage } from '../utils/i18n';
 import { setRealtimeAuth, subscribeToWalletUpdates, subscribeToNewTransactions } from '../services/supabaseClient';
 import { QPayApi } from '../api/sdk';
+import { API_BASE } from '../services/apiConfig';
 
 export interface KycDocumentRecord {
   frontDocUrl?: string;
@@ -242,7 +243,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     // Fetch transactions from API
-    fetch('/api/transactions?limit=50', {
+    fetch(`${API_BASE}/transactions?limit=50`, {
       headers: { Authorization: `Bearer ${accessToken}` },
     })
       .then((r) => r.json())
