@@ -4,7 +4,7 @@ import { useApp } from '../state/AppContext';
 import { designSystem } from '../design-system';
 
 export const ScanScreen: React.FC = () => {
-  const { isScanModalOpen, setIsScanModalOpen, navigateTo, t, language, accessToken } = useApp();
+  const { isScanModalOpen, setIsScanModalOpen, navigateTo, t, language, accessToken, currentScreen } = useApp();
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isFlashOn, setIsFlashOn] = useState<boolean>(false);
   const [isScanning, setIsScanning] = useState<boolean>(true);
@@ -37,7 +37,7 @@ export const ScanScreen: React.FC = () => {
 
   // Start real camera stream
   useEffect(() => {
-    if (!isScanModalOpen) {
+    if (!isScanModalOpen && currentScreen !== 'SCAN') {
       if (streamRef.current) {
         streamRef.current.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
@@ -59,10 +59,11 @@ export const ScanScreen: React.FC = () => {
         streamRef.current = stream;
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(() => {});
+          await videoRef.current.play().catch(() => {});
         }
-        setHasCameraPermission(true);
-      } catch {
+        if (isMounted) setHasCameraPermission(true);
+      } catch (err: any) {
+        console.warn('[Camera] Permission or hardware error:', err.message);
         if (isMounted) setHasCameraPermission(false);
       }
     };
@@ -75,18 +76,19 @@ export const ScanScreen: React.FC = () => {
         streamRef.current = null;
       }
     };
-  }, [isScanModalOpen]);
+  }, [isScanModalOpen, currentScreen]);
 
+  // Handle Torch / Flashlight Toggle
   const toggleFlash = async () => {
-    if (!streamRef.current) return;
-    const track = streamRef.current.getVideoTracks()[0];
-    if (track) {
-      const capabilities = (track.getCapabilities ? track.getCapabilities() : {}) as any;
-      if (capabilities.torch) {
+    if (streamRef.current) {
+      const track = streamRef.current.getVideoTracks()[0];
+      const capabilities = track.getCapabilities?.() as any;
+      if (capabilities && capabilities.torch) {
         try {
-          const nextState = !isFlashOn;
-          await (track as any).applyConstraints({ advanced: [{ torch: nextState }] });
-          setIsFlashOn(nextState);
+          await track.applyConstraints({
+            advanced: [{ torch: !isFlashOn } as any],
+          });
+          setIsFlashOn(!isFlashOn);
         } catch { /* Torch not supported */ }
       } else {
         setIsFlashOn(!isFlashOn);
@@ -142,34 +144,34 @@ export const ScanScreen: React.FC = () => {
   };
 
   /**
-   * Parse QR payload looking for qpay://pay?m=<merchantCode>
+   * Parse QR Code string
    */
-  const parseAndProcessQr = (payload: string) => {
-    setResolveError(null);
+  const parseAndProcessQr = (qrData: string) => {
+    if (!isScanning) return;
     setIsScanning(false);
 
-    // qpay://pay?m=QMXXXXXX
-    if (payload.startsWith('qpay://pay')) {
-      try {
-        const urlPart = payload.replace('qpay://pay', 'https://qpay.sa/pay');
-        const url = new URL(urlPart);
-        const code = url.searchParams.get('m');
-        if (code) {
-          resolveMerchantAndNavigate(code);
-          return;
-        }
-      } catch { /* fall through */ }
+    let resolvedCode: string | null = null;
+    const qpayMatch = qrData.match(/[?&]m=([A-Za-z0-9_-]+)/i);
+    if (qpayMatch) {
+      resolvedCode = qpayMatch[1];
+    } else {
+      const bareMatch = qrData.match(/^(QM\d{6,8})$/i);
+      if (bareMatch) resolvedCode = bareMatch[1];
     }
 
-    setResolveError(
-      language === 'العربية'
-        ? 'رمز QR غير مدعوم. استخدم رموز QPay للتاجر فقط.'
-        : 'Unsupported QR. Use QPay merchant QR codes only.'
-    );
-    setTimeout(() => {
-      setIsScanning(true);
-      setResolveError(null);
-    }, 3000);
+    if (resolvedCode) {
+      resolveMerchantAndNavigate(resolvedCode);
+    } else {
+      setResolveError(
+        language === 'العربية'
+          ? 'رمز الاستجابة السريعة (QR) غير صالح للدفع.'
+          : 'Invalid QR code. Please scan a valid QPay QR code.'
+      );
+      setTimeout(() => {
+        setIsScanning(true);
+        setResolveError(null);
+      }, 3000);
+    }
   };
 
   const handleManualSubmit = (e: React.FormEvent) => {
@@ -179,7 +181,7 @@ export const ScanScreen: React.FC = () => {
     resolveMerchantAndNavigate(code);
   };
 
-  if (!isScanModalOpen) return null;
+  if (!isScanModalOpen && currentScreen !== 'SCAN') return null;
 
   return (
     <div
