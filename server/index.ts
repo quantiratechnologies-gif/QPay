@@ -263,7 +263,7 @@ app.post('/api/auth/otp/send', async (req: express.Request, res: express.Respons
         .eq('mobile', normalizedPhone)
         .maybeSingle();
       if (existing && existing.role !== role) {
-        res.status(409).json({ error: 'ROLE_MISMATCH', message: `This phone is registered as ${existing.role}` });
+        res.status(409).json({ error: 'ROLE_MISMATCH', message: `This number is registered as a ${existing.role}` });
         return;
       }
     }
@@ -340,7 +340,7 @@ app.post('/api/auth/otp/verify', async (req: express.Request, res: express.Respo
       .maybeSingle();
 
     if (existingProfile && existingProfile.role !== effectiveRole) {
-      res.status(409).json({ error: 'ROLE_MISMATCH', message: `This phone is already registered as ${existingProfile.role}` });
+      res.status(409).json({ error: 'ROLE_MISMATCH', message: `This number is registered as a ${existingProfile.role}` });
       return;
     }
 
