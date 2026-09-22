@@ -25,11 +25,11 @@ import { useApp } from '../state/AppContext';
 import { formatCurrency } from '../utils/formatters';
 
 export const HomeScreen: React.FC = () => {
-  const { user, bankAccounts, transactions, navigateTo, setIsScanModalOpen, openPinModal, isKycVerified, t, language, isRtl } = useApp();
+  const { user, bankAccounts, transactions, navigateTo, setIsScanModalOpen, openPinModal, isKycVerified, t, language, isRtl, walletBalance } = useApp();
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [showTotalBalance, setShowTotalBalance] = useState(false);
 
-  const totalBalance = bankAccounts.reduce((acc, bank) => acc + bank.balance, 0);
+  const totalBalance = walletBalance;
   const recentTransactions = transactions.slice(0, 3);
 
   const handleToggleBalance = () => {

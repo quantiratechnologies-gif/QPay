@@ -16,15 +16,17 @@ export const PaymentSuccessScreen: React.FC = () => {
   const [isProcessingReceipt, setIsProcessingReceipt] = useState(false);
 
   const txn: Transaction = screenParams.transaction || lastTransaction || {
-    id: 'QT98472910482',
-    title: 'Saudi Electricity Company (SEC)',
-    subTitle: 'Utility Bill Payment',
-    amount: 2620.14,
-    type: 'sent',
+    id: 'QPay-' + Date.now(),
+    title: screenParams.businessName || 'Merchant',
+    subTitle: screenParams.merchantCode ? `Merchant Payment • ${screenParams.merchantCode}` : 'Merchant Payment',
+    amount: screenParams.amount || 0,
+    type: 'sent' as const,
     date: 'TODAY',
     timestamp: new Date(),
-    utr: 'SARIE984729104821',
+    utr: 'QPay-' + Date.now(),
   };
+
+  const newBalance: number | undefined = screenParams.newBalance;
 
   const displayTitle = t(txn.title, txn.title);
   const isAr = language === 'العربية' || language === 'ar';
@@ -126,9 +128,18 @@ export const PaymentSuccessScreen: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '12px' }}>
             <span style={{ color: '#9ca3af', fontSize: '13px' }}>{t('pay.source_account', 'Payment Method')}</span>
             <span style={{ fontWeight: '700', fontSize: '13px', color: 'var(--brand-green)' }}>
-              {t('Al Rajhi Bank', 'Al Rajhi Bank')} •••• 4821
+              {language === 'العربية' ? 'محفظة كيو باي' : 'QPay Wallet'}
             </span>
           </div>
+
+          {newBalance !== undefined && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px' }}>
+              <span style={{ color: '#9ca3af', fontSize: '13px' }}>{language === 'العربية' ? 'الرصيد المتبقي' : 'New Wallet Balance'}</span>
+              <span style={{ fontWeight: '700', fontSize: '13px', color: '#FFFFFF', fontVariantNumeric: 'tabular-nums' }}>
+                {formatCurrency(newBalance, language)}
+              </span>
+            </div>
+          )}
         </div>
 
         {downloadMsg && (

@@ -27,3 +27,11 @@ dist-ssr
 .vercel
 test-results/
 playwright-report/
+
+# Environment files (never commit real secrets)
+.env
+.env.*
+!.env.example
+
+# APK builds
+*.apk

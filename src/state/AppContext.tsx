@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type {
   User,
   BankAccount,
@@ -15,13 +15,12 @@ import type {
 } from '../types';
 import { authService } from '../services/authService';
 import { bankService } from '../services/bankService';
-import { transactionService } from '../services/transactionService';
 import { notificationService } from '../services/notificationService';
 import { billPaymentService } from '../services/billPaymentService';
 
 import { translateText, type SupportedLanguage } from '../utils/i18n';
-import { syncTransactionToSupabase, subscribeToTransactions } from '../services/supabaseClient';
-import { QPayApi } from '../api';
+import { setRealtimeAuth, subscribeToWalletUpdates, subscribeToNewTransactions } from '../services/supabaseClient';
+import { QPayApi } from '../api/sdk';
 
 export interface KycDocumentRecord {
   frontDocUrl?: string;
@@ -32,6 +31,13 @@ export interface KycDocumentRecord {
 }
 
 interface AppContextType {
+  // Auth token & profile
+  accessToken: string | null;
+  profileId: string | null;
+  walletBalance: number;
+  setWalletBalance: (balance: number) => void;
+  setAuthToken: (token: string, profileId: string) => void;
+
   // Localization & Translation
   language: string;
   isRtl: boolean;
@@ -187,12 +193,87 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
 
   const [user, setUser] = useState<User>({
-    name: 'Fahad Al-Harbi',
-    avatarInitials: 'FA',
-    upiId: 'fahad@sarie',
-    mobile: '+966 50 123 4567',
-    email: 'fahad.alharbi@email.sa',
+    name: '',
+    avatarInitials: 'QP',
+    upiId: '',
+    mobile: '',
+    email: '',
   });
+
+  const [accessToken, setAccessTokenState] = useState<string | null>(null);
+  const [profileId, setProfileId] = useState<string | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  // Restore session on mount
+  useEffect(() => {
+    const stored = authService.loadSession();
+    if (stored) {
+      setAccessTokenState(stored.token);
+      setProfileId(stored.user.id);
+      setRealtimeAuth(stored.token);
+      setUser({
+        id: stored.user.id,
+        name: stored.user.name,
+        mobile: stored.user.mobile,
+        role: stored.user.role,
+        avatarInitials: stored.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'QP',
+        upiId: '',
+        email: '',
+        merchantCode: stored.user.merchantCode,
+        businessName: stored.user.businessName,
+      });
+    }
+  }, []);
+
+  const setAuthToken = useCallback((token: string, pid: string) => {
+    setAccessTokenState(token);
+    setProfileId(pid);
+  }, []);
+
+  // Load balance and transactions from API when profileId is set
+  useEffect(() => {
+    if (!profileId || !accessToken) return;
+
+    // Fetch /api/me for wallet balance
+    authService.getMe().then((data) => {
+      setWalletBalance(Number(data.wallet.balance));
+    }).catch((err) => {
+      console.warn('[AppContext] getMe error:', err);
+    });
+
+    // Fetch transactions from API
+    fetch('/api/transactions?limit=50', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.transactions) {
+          const mapped = (data.transactions as any[]).map((row: any) => mapDbTxToUi(row, profileId));
+          setTransactions(mapped);
+        }
+      })
+      .catch((err) => console.warn('[AppContext] transactions fetch error:', err));
+
+    // Realtime wallet updates
+    const unsubWallet = subscribeToWalletUpdates(profileId, (newBalance) => {
+      setWalletBalance(newBalance);
+    });
+
+    // Realtime new transactions
+    const unsubTx = subscribeToNewTransactions(profileId, (row) => {
+      const tx = mapDbTxToUi(row, profileId);
+      setTransactions((prev) => {
+        if (prev.some((t) => t.id === tx.id)) return prev;
+        return [tx, ...prev];
+      });
+      setLastTransaction(tx);
+    });
+
+    return () => {
+      unsubWallet();
+      unsubTx();
+    };
+  }, [profileId, accessToken]);
 
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -418,10 +499,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setScreenStack([{ screen: initialScreen }]);
     }
 
-    // Load initial data
-    authService.getCurrentUser().then(setUser);
-    bankService.getBankAccounts().then(setBankAccounts);
-    transactionService.getInitialTransactions().then(setTransactions);
+    // Load initial notifications
     notificationService.getInitialNotifications().then(setNotifications);
 
     // Sync authoritative transfer limits from backend
@@ -437,20 +515,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
     }).catch(() => {});
-
-    // Subscribe to Supabase real-time transactions
-    const unsubscribe = subscribeToTransactions((newTx) => {
-      setTransactions((prev) => {
-        if (prev.some((t) => t.id === newTx.id || (newTx.utr && t.utr === newTx.utr))) {
-          return prev;
-        }
-        return [newTx, ...prev];
-      });
-    });
-
-    return () => {
-      unsubscribe();
-    };
   }, []);
 
   // Expose global test helpers for Playwright / automation verification
@@ -696,7 +760,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setTransactions((prev) => [newTxn, ...prev]);
     setLastTransaction(newTxn);
-    syncTransactionToSupabase(newTxn);
 
     const formattedAmt = `SAR ${params.amount.toFixed(2)}`;
     const newNotif: AppNotification = {
@@ -744,7 +807,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setTransactions((prev) => [newTxn, ...prev]);
     setLastTransaction(newTxn);
-    syncTransactionToSupabase(newTxn);
 
     const formattedAmt = `SAR ${params.amount.toFixed(2)}`;
     const newNotif: AppNotification = {
@@ -816,9 +878,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [isRtl]);
 
   const performLogout = () => {
+    authService.clearSession();
     localStorage.removeItem('hasSeenOnboarding');
     localStorage.removeItem('hasCompletedOnboarding');
     localStorage.removeItem('hasGrantedPermissions');
+    setAccessTokenState(null);
+    setProfileId(null);
+    setWalletBalance(0);
+    setTransactions([]);
     setIsLogoutModalOpen(false);
     setCurrentScreen('SPLASH');
     setScreenStack([{ screen: 'SPLASH' }]);
@@ -1025,12 +1092,43 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setIsBalanceRevealed,
         isIbanRevealed,
         setIsIbanRevealed,
+        // Real auth & wallet
+        accessToken,
+        profileId,
+        walletBalance,
+        setWalletBalance,
+        setAuthToken,
       }}
     >
       {children}
     </AppContext.Provider>
   );
 };
+
+// ---------------------------------------------------------------------------
+// Helper: map DB transaction row to UI Transaction type
+// ---------------------------------------------------------------------------
+function mapDbTxToUi(row: any, myProfileId: string): Transaction {
+  const isSent = row.payer_profile_id === myProfileId;
+  return {
+    id: row.id || `tx-${Date.now()}`,
+    title: isSent
+      ? (row.payee_name || row.receiver_name || 'Merchant')
+      : (row.payer_name || row.sender_name || 'Customer'),
+    subTitle: isSent ? `Paid to ${row.payee_name || ''}` : `Received from ${row.payer_name || ''}`,
+    amount: Number(row.amount),
+    type: isSent ? 'sent' : 'received',
+    date: 'TODAY',
+    timestamp: new Date(row.created_at || Date.now()),
+    utr: row.order_ref || row.id || `UTR${Date.now()}`,
+    category: row.category || 'Payment',
+    avatarInitials: ((isSent ? row.payee_name : row.payer_name) || 'QP').slice(0, 2).toUpperCase(),
+    payerName: row.payer_name,
+    payeeName: row.payee_name,
+    payerProfileId: row.payer_profile_id,
+    payeeProfileId: row.payee_profile_id,
+  };
+}
 
 export const useApp = () => {
   const context = useContext(AppContext);

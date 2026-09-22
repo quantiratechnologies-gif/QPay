@@ -1,20 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Loader } from 'lucide-react';
 import { AlphPayLogo } from '../components/AlphPayLogo';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useApp } from '../state/AppContext';
 import { toArabicNumerals } from '../utils/i18n';
-import { authenticateWithAnyOtp } from '../services/supabaseClient';
+import { authService } from '../services/authService';
+import { setRealtimeAuth } from '../services/supabaseClient';
 
 export const SmsOtpScreen: React.FC = () => {
-  const { navigateTo, screenParams, goBack, t, isRtl, language, updateUser, activeOtp, setActiveOtp, verifyOtp } = useApp();
-  const mobile = screenParams.mobile || '501234567';
+  const { navigateTo, screenParams, goBack, t, isRtl, language, updateUser, setAuthToken } = useApp();
+  const mobile = screenParams.mobile || '';
+  const phone = screenParams.phone || `+966${mobile}`;
+  const fullName = screenParams.name || '';
 
   const [otp, setOtp] = useState<string[]>(['', '', '', '', '', '']);
   const [timer, setTimer] = useState(28);
   const [isResent, setIsResent] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string>('');
-  const [showSmsBanner, setShowSmsBanner] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const inputRefs = [
     useRef<HTMLInputElement>(null),
@@ -55,54 +58,70 @@ export const SmsOtpScreen: React.FC = () => {
   const isComplete = otp.every((digit) => digit.length > 0);
 
   const handleVerify = async () => {
-    if (!isComplete) return;
+    if (!isComplete || isLoading) return;
     setErrorMsg('');
+    setIsLoading(true);
 
     const enteredCode = otp.join('');
-    const isValid = verifyOtp(enteredCode);
+    try {
+      const result = await authService.verifyOtp({
+        phone,
+        otp: enteredCode,
+        role: 'customer',
+        fullName,
+      });
 
-    if (!isValid) {
+      // Store session
+      authService.storeSession(result.user, result.session.access_token);
+
+      // Set Realtime auth
+      setRealtimeAuth(result.session.access_token);
+
+      // Update app state
+      updateUser({
+        id: result.user.id,
+        name: result.user.name,
+        mobile: result.user.mobile,
+        role: result.user.role,
+        avatarInitials: result.user.name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'QP',
+        upiId: '',
+        email: '',
+      });
+      setAuthToken(result.session.access_token, result.user.id);
+
+      const hasPin = typeof window !== 'undefined' ? localStorage.getItem('qpay_user_pin') : null;
+      if (!hasPin) {
+        navigateTo('SET_PIN');
+      } else {
+        navigateTo('PERMISSIONS');
+      }
+    } catch (err: any) {
       setErrorMsg(
         language === 'العربية'
-          ? 'رمز التحقق غير صحيح، يرجى التأكد من الرسائل النصية والمحاولة مرة أخرى'
-          : 'Invalid verification code. Please check your SMS and try again.'
+          ? 'رمز التحقق غير صحيح، يرجى المحاولة مرة أخرى.'
+          : err.message || 'Invalid verification code. Please try again.'
       );
       setOtp(['', '', '', '', '', '']);
       inputRefs[0].current?.focus();
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  };
 
+  const handleResend = async () => {
+    if (timer > 0) return;
     try {
-      const authedUser = await authenticateWithAnyOtp(mobile, enteredCode);
-      updateUser(authedUser);
-    } catch (e) {
-      console.warn('Auth notice:', e);
+      await authService.resendOtp(phone);
+      setTimer(30);
+      setIsResent(true);
+      setTimeout(() => setIsResent(false), 3000);
+    } catch (err: any) {
+      setErrorMsg(
+        language === 'العربية'
+          ? 'تعذر إعادة إرسال الرمز. حاول مجدداً.'
+          : err.message || 'Failed to resend OTP. Please try again.'
+      );
     }
-
-    // Check if user has already set their MPIN
-    const hasPin = typeof window !== 'undefined' ? localStorage.getItem('qpay_user_pin') : null;
-    if (!hasPin) {
-      navigateTo('SET_PIN');
-    } else {
-      navigateTo('PERMISSIONS');
-    }
-  };
-
-  const handleResend = () => {
-    const newCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setActiveOtp(newCode);
-    setTimer(30);
-    setIsResent(true);
-    setShowSmsBanner(true);
-    setTimeout(() => setIsResent(false), 3000);
-  };
-
-  const handleQuickFill = (codeToFill?: string) => {
-    const targetCode = codeToFill || activeOtp || '589204';
-    const digits = targetCode.slice(0, 6).split('');
-    setOtp(digits);
-    setErrorMsg('');
-    inputRefs[5].current?.focus();
   };
 
   return (
@@ -121,58 +140,6 @@ export const SmsOtpScreen: React.FC = () => {
         userSelect: 'none',
       }}
     >
-      {/* Top Simulated SMS Notification Banner */}
-      {showSmsBanner && (
-        <div
-          style={{
-            backgroundColor: 'rgba(24, 34, 54, 0.95)',
-            backdropFilter: 'blur(16px)',
-            border: '1px solid rgba(0, 255, 36, 0.3)',
-            borderRadius: '16px',
-            padding: '12px 16px',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.5), 0 0 12px rgba(0, 255, 36, 0.15)',
-            marginBottom: '20px',
-            width: '100%',
-            maxWidth: '380px',
-            margin: '0 auto 20px auto',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontSize: '20px' }}>💬</span>
-            <div style={{ textAlign: isRtl ? 'right' : 'left' }}>
-              <div style={{ fontSize: '10.5px', fontWeight: 800, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                {language === 'العربية' ? 'رسالة نصية • الآن' : 'SMS • Messages'}
-              </div>
-              <div style={{ fontSize: '12px', color: '#FFFFFF', fontWeight: 600 }}>
-                {language === 'العربية' ? 'رمز تحقق QTPay: ' : 'QTPay code: '}
-                <strong style={{ color: '#00FF24', fontSize: '14px', letterSpacing: '1px' }}>{activeOtp}</strong>
-              </div>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => handleQuickFill(activeOtp)}
-            style={{
-              backgroundColor: '#00FF24',
-              color: '#070D0A',
-              border: 'none',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              fontSize: '11px',
-              fontWeight: 800,
-              cursor: 'pointer',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {language === 'العربية' ? 'تعبئة' : 'Autofill'}
-          </button>
-        </div>
-      )}
-
       {/* Top Center: App Brand Logo */}
       <div
         style={{
@@ -225,7 +192,7 @@ export const SmsOtpScreen: React.FC = () => {
           </button>
         </div>
 
-        {/* Error Alert if incorrect OTP */}
+        {/* Error Alert */}
         {errorMsg && (
           <div
             style={{
@@ -244,7 +211,7 @@ export const SmsOtpScreen: React.FC = () => {
           </div>
         )}
 
-        {/* 6-Digit Clean OTP Boxes */}
+        {/* 6-Digit OTP Boxes */}
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '20px', direction: 'ltr' }}>
           {otp.map((digit, i) => (
             <input
@@ -275,7 +242,7 @@ export const SmsOtpScreen: React.FC = () => {
           ))}
         </div>
 
-        {/* Resend SMS Counter & Optional Quick-fill Helper */}
+        {/* Resend Counter */}
         <div style={{ textAlign: 'center', fontSize: '12.5px', color: '#A2A2BA', marginBottom: '18px' }}>
           {language === 'العربية' ? 'لم تستلم الرمز؟ ' : "Didn't receive SMS? "}
           <button
@@ -304,28 +271,16 @@ export const SmsOtpScreen: React.FC = () => {
           </div>
         )}
 
-        <PrimaryButton onClick={handleVerify} disabled={!isComplete}>
-          {t('auth.verify_continue', 'Verify & Continue')} <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
+        <PrimaryButton onClick={handleVerify} disabled={!isComplete || isLoading}>
+          {isLoading ? (
+            <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+          ) : (
+            <>
+              {t('auth.verify_continue', 'Verify & Continue')}{' '}
+              <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
+            </>
+          )}
         </PrimaryButton>
-
-        {/* Subtle Testing Helper */}
-        <div style={{ textAlign: 'center', marginTop: '12px' }}>
-          <button
-            type="button"
-            onClick={() => handleQuickFill()}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#6E6E85',
-              fontSize: '11px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              textDecoration: 'none',
-            }}
-          >
-            {language === 'العربية' ? 'رمز تجريبي: 589204' : 'Demo OTP: 589204'}
-          </button>
-        </div>
       </div>
 
       <div style={{ height: '20px' }} />

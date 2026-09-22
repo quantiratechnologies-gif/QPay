@@ -5,7 +5,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { SecondaryButton } from '../components/SecondaryButton';
 import { useApp } from '../state/AppContext';
 import { formatSaudiCurrency, translateText } from '../utils/i18n';
-import { QPayApi } from '../api';
+import { QPayApi } from '../api/sdk';
 
 export type TravelCategory = 'flights' | 'airport' | 'hotels' | 'holidays';
 

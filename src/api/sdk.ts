@@ -4,6 +4,9 @@
  * 
  * Exposes documented type-safe endpoints backed by server-side validation,
  * idempotency, authentication derivation, and audit logging.
+ * 
+ * NOTE: This is the frontend SDK for split expenses, KYC, travel, and limits.
+ * The real payment/auth API is the Express server in /server/index.ts.
  */
 
 import { AuthService } from './auth';

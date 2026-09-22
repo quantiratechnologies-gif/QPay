@@ -1,4 +1,5 @@
 export interface User {
+  id?: string;
   name: string;
   avatarInitials: string;
   avatarUrl?: string;
@@ -6,6 +7,9 @@ export interface User {
   upiId: string;
   mobile: string;
   email: string;
+  role?: string;
+  merchantCode?: string;
+  businessName?: string;
 }
 
 export interface BankAccount {
@@ -38,6 +42,10 @@ export interface Transaction {
   accountUsed?: string;
   category?: string;
   avatarInitials?: string;
+  payerName?: string;
+  payeeName?: string;
+  payerProfileId?: string;
+  payeeProfileId?: string;
 }
 
 export interface AppNotification {
@@ -143,6 +151,3 @@ export type ScreenId =
   | 'FOOD';
 
 export type BottomTab = 'home' | 'spend' | 'account' | 'pay' | 'scan' | 'history' | 'profile';
-
-
-

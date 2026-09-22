@@ -1,19 +1,45 @@
 import React, { useState } from 'react';
-import { User as UserIcon, ArrowRight } from 'lucide-react';
+import { User as UserIcon, ArrowRight, Loader } from 'lucide-react';
 import { AlphPayLogo } from '../components/AlphPayLogo';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { useApp } from '../state/AppContext';
+import { authService } from '../services/authService';
 
 export const MobileNumberScreen: React.FC = () => {
-  const { navigateTo, user, updateUser, t, isRtl, language } = useApp();
-  const [fullName, setFullName] = useState<string>(user.name || 'Fahad Al-Harbi');
-  const [mobileNumber, setMobileNumber] = useState<string>('501234567');
+  const { navigateTo, updateUser, t, isRtl, language } = useApp();
+  const [fullName, setFullName] = useState<string>('');
+  const [mobileNumber, setMobileNumber] = useState<string>('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
-  const handleContinue = (e?: React.FormEvent) => {
+  const handleContinue = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (mobileNumber.length >= 9 && fullName.trim().length > 0) {
-      updateUser({ name: fullName, mobile: `+966 ${mobileNumber}` });
-      navigateTo('SMS_OTP', { mobile: mobileNumber, name: fullName });
+    if (mobileNumber.length < 9 || fullName.trim().length === 0) return;
+
+    setError('');
+    setIsLoading(true);
+
+    const phone = `+966${mobileNumber}`;
+    try {
+      await authService.sendOtp(phone, 'customer');
+      updateUser({ name: fullName.trim(), mobile: `+966 ${mobileNumber}` });
+      navigateTo('SMS_OTP', { mobile: mobileNumber, phone, name: fullName.trim() });
+    } catch (err: any) {
+      if (err.code === 'ROLE_MISMATCH') {
+        setError(
+          language === 'العربية'
+            ? 'هذا الرقم مسجل كحساب تاجر. استخدم تطبيق التاجر للدخول.'
+            : 'This number is registered as a merchant account. Use the merchant app to sign in.'
+        );
+      } else {
+        setError(
+          language === 'العربية'
+            ? 'تعذر إرسال رمز التحقق. حاول مجدداً.'
+            : err.message || 'Failed to send OTP. Please try again.'
+        );
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -194,11 +220,38 @@ export const MobileNumberScreen: React.FC = () => {
             </div>
           </div>
 
+          {/* Error Banner */}
+          {error && (
+            <div
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                color: '#EF4444',
+                borderRadius: '10px',
+                padding: '10px 14px',
+                fontSize: '12px',
+                fontWeight: 700,
+                textAlign: 'center',
+              }}
+            >
+              {error}
+            </div>
+          )}
+
           {/* Primary Submit Button */}
           <div style={{ marginTop: '6px' }}>
-            <PrimaryButton type="submit" disabled={mobileNumber.length < 9 || fullName.trim().length === 0}>
-              {t('auth.get_otp', 'Get OTP & Verify')}{' '}
-              <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
+            <PrimaryButton
+              type="submit"
+              disabled={mobileNumber.length < 9 || fullName.trim().length === 0 || isLoading}
+            >
+              {isLoading ? (
+                <Loader size={18} style={{ animation: 'spin 1s linear infinite' }} />
+              ) : (
+                <>
+                  {t('auth.get_otp', 'Get OTP & Verify')}{' '}
+                  <ArrowRight size={18} style={{ transform: isRtl ? 'scaleX(-1)' : 'none' }} />
+                </>
+              )}
             </PrimaryButton>
           </div>
         </form>
