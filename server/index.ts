@@ -32,6 +32,8 @@ const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const SUPABASE_JWT_SECRET = process.env.SUPABASE_JWT_SECRET || '';
 const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY || '';
 const MSG91_TEMPLATE_ID = process.env.MSG91_TEMPLATE_ID || '';
+const OTP_PROVIDER = (process.env.OTP_PROVIDER || '2factor').toLowerCase();
+const TWOFACTOR_API_KEY = process.env.TWOFACTOR_API_KEY || '';
 const OTP_SANDBOX = process.env.OTP_SANDBOX === 'true';
 
 // Production safety check: refuse to start if sandbox mode is enabled in production
@@ -178,6 +180,104 @@ async function msg91VerifyOtp(phone: string, otp: string): Promise<{ success: bo
 }
 
 // ---------------------------------------------------------------------------
+// 2Factor.in helpers
+// ---------------------------------------------------------------------------
+interface TwoFactorSession {
+  sessionId: string;
+  timestamp: number;
+}
+const twoFactorSessions = new Map<string, TwoFactorSession>();
+
+async function twoFactorSendOtp(phone: string): Promise<{ success: boolean; message?: string; status?: number }> {
+  if (OTP_SANDBOX) {
+    console.log(`[OTP_SANDBOX] Simulated 2Factor OTP sent to ${phone}`);
+    return { success: true, message: 'OTP sent (sandbox mode - use 123456)' };
+  }
+  try {
+    const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/${encodeURIComponent(phone)}/AUTOGEN`;
+    const res = await fetch(url, { method: 'GET' });
+    const data = (await res.json()) as any;
+    console.log(`[2Factor] Send OTP to ${phone} status: ${res.status}, result:`, data?.Status);
+
+    if (data && data.Status === 'Success' && data.Details) {
+      twoFactorSessions.set(phone, {
+        sessionId: data.Details,
+        timestamp: Date.now(),
+      });
+      return { success: true, message: 'OTP sent successfully', status: res.status };
+    }
+
+    console.error(`[2Factor] Send OTP failed for ${phone}:`, data?.Details || data?.Status);
+    return { success: false, message: 'Could not send OTP, please try again', status: res.status };
+  } catch (err: any) {
+    console.error(`[2Factor] Send OTP network error for ${phone}:`, err.message);
+    return { success: false, message: 'Could not send OTP, please try again' };
+  }
+}
+
+async function twoFactorVerifyOtp(phone: string, otp: string): Promise<{ success: boolean; message?: string }> {
+  if (OTP_SANDBOX) {
+    console.log(`[OTP_SANDBOX] Verifying ${phone} with OTP: ${otp}`);
+    if (otp && (otp.length === 6 || otp === '123456')) {
+      return { success: true, message: 'OTP verified (sandbox mode)' };
+    }
+    return { success: false, message: 'Invalid OTP length (expected 6 digits)' };
+  }
+
+  const session = twoFactorSessions.get(phone);
+  if (!session || !session.sessionId) {
+    return { success: false, message: 'No active OTP session found. Please request a new OTP.' };
+  }
+
+  try {
+    const url = `https://2factor.in/API/V1/${TWOFACTOR_API_KEY}/SMS/VERIFY/${session.sessionId}/${otp}`;
+    const res = await fetch(url, { method: 'GET' });
+    const data = (await res.json()) as any;
+    console.log(`[2Factor] Verify OTP for ${phone} status: ${res.status}, result:`, data?.Status);
+
+    if (data && data.Status === 'Success') {
+      twoFactorSessions.delete(phone);
+      return { success: true, message: 'OTP verified successfully' };
+    }
+
+    const failMsg = data?.Details === 'OTP Mismatch'
+      ? 'Incorrect OTP. Please try again.'
+      : data?.Details === 'OTP Expired'
+      ? 'OTP has expired. Please request a new OTP.'
+      : data?.Details || 'Invalid OTP, please try again';
+
+    return { success: false, message: failMsg };
+  } catch (err: any) {
+    console.error(`[2Factor] Verify OTP network error for ${phone}:`, err.message);
+    return { success: false, message: 'Verification failed. Please try again.' };
+  }
+}
+
+// ---------------------------------------------------------------------------
+// OTP Dispatchers (switches between 2factor and msg91)
+// ---------------------------------------------------------------------------
+async function dispatchSendOtp(phone: string): Promise<{ success: boolean; message?: string; status?: number }> {
+  if (OTP_PROVIDER === '2factor') {
+    return twoFactorSendOtp(phone);
+  }
+  return msg91SendOtp(phone);
+}
+
+async function dispatchResendOtp(phone: string): Promise<{ success: boolean; message?: string; status?: number }> {
+  if (OTP_PROVIDER === '2factor') {
+    return twoFactorSendOtp(phone);
+  }
+  return msg91ResendOtp(phone);
+}
+
+async function dispatchVerifyOtp(phone: string, otp: string): Promise<{ success: boolean; message?: string }> {
+  if (OTP_PROVIDER === '2factor') {
+    return twoFactorVerifyOtp(phone, otp);
+  }
+  return msg91VerifyOtp(phone, otp);
+}
+
+// ---------------------------------------------------------------------------
 // JWT helpers
 // ---------------------------------------------------------------------------
 function signToken(profileId: string, appRole: string): { access_token: string; expires_in: number } {
@@ -287,6 +387,15 @@ app.post('/api/auth/otp/send', async (req: express.Request, res: express.Respons
       return;
     }
 
+    // Saudi SMS not available yet when 2factor provider is used
+    if (OTP_PROVIDER === '2factor' && normalizedPhone.startsWith('+966')) {
+      res.status(400).json({
+        error: 'SMS_UNAVAILABLE',
+        message: 'Saudi SMS not available yet',
+      });
+      return;
+    }
+
     if (!checkOtpRate(normalizedPhone)) {
       res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many OTP requests. Try again later.' });
       return;
@@ -305,7 +414,7 @@ app.post('/api/auth/otp/send', async (req: express.Request, res: express.Respons
       }
     }
 
-    const result = await msg91SendOtp(normalizedPhone);
+    const result = await dispatchSendOtp(normalizedPhone);
     if (!result.success) {
       res.status(502).json({
         error: 'OTP_SEND_FAILED',
@@ -340,12 +449,21 @@ app.post('/api/auth/otp/resend', async (req: express.Request, res: express.Respo
       return;
     }
 
+    // Saudi SMS not available yet when 2factor provider is used
+    if (OTP_PROVIDER === '2factor' && normalizedPhone.startsWith('+966')) {
+      res.status(400).json({
+        error: 'SMS_UNAVAILABLE',
+        message: 'Saudi SMS not available yet',
+      });
+      return;
+    }
+
     if (!checkOtpRate(normalizedPhone)) {
       res.status(429).json({ error: 'RATE_LIMITED', message: 'Too many OTP requests. Try again later.' });
       return;
     }
 
-    const result = await msg91ResendOtp(normalizedPhone);
+    const result = await dispatchResendOtp(normalizedPhone);
     if (!result.success) {
       res.status(502).json({
         error: 'OTP_RESEND_FAILED',
@@ -389,8 +507,8 @@ app.post('/api/auth/otp/verify', async (req: express.Request, res: express.Respo
       return;
     }
 
-    // Verify OTP with MSG91
-    const verifyResult = await msg91VerifyOtp(normalizedPhone, otp);
+    // Verify OTP with selected provider (2factor or msg91)
+    const verifyResult = await dispatchVerifyOtp(normalizedPhone, String(otp));
     if (!verifyResult.success) {
       res.status(401).json({ error: 'INVALID_OTP', message: verifyResult.message || 'Invalid or expired OTP' });
       return;
@@ -761,7 +879,12 @@ if (process.env.VERCEL !== '1') {
     console.log(`[QPay Server] Running on http://localhost:${PORT}`);
     console.log(`[QPay Server] Supabase: ${SUPABASE_URL ? '✓ configured' : '✗ missing'}`);
     console.log(`[QPay Server] JWT Secret: ${SUPABASE_JWT_SECRET ? '✓ configured' : '✗ missing'}`);
-    console.log(`[QPay Server] MSG91: ${MSG91_AUTH_KEY ? '✓ configured' : '✗ missing'}`);
+    console.log(`[QPay Server] OTP Provider: ${OTP_PROVIDER}`);
+    if (OTP_PROVIDER === '2factor') {
+      console.log(`[QPay Server] 2Factor: ${TWOFACTOR_API_KEY ? '✓ configured' : '✗ missing'}`);
+    } else {
+      console.log(`[QPay Server] MSG91: ${MSG91_AUTH_KEY ? '✓ configured' : '✗ missing'}`);
+    }
   });
 }
 

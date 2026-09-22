@@ -91,6 +91,12 @@ export const MobileNumberScreen: React.FC = () => {
             ? 'هذا الرقم مسجل كحساب تاجر. استخدم تطبيق التاجر للدخول.'
             : 'This number is registered as a merchant account. Use the merchant app to sign in.'
         );
+      } else if (err.code === 'SMS_UNAVAILABLE' || (err.message && err.message.includes('Saudi SMS'))) {
+        setError(
+          language === 'العربية'
+            ? 'الرسائل النصية للسعودية غير متوفرة حالياً'
+            : (err.message || 'Saudi SMS not available yet')
+        );
       } else {
         setError(
           language === 'العربية'
