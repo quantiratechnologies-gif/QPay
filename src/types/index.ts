@@ -6,6 +6,14 @@ export interface User {
   upiId: string;
   mobile: string;
   email: string;
+  id?: string;
+  tier?: string;
+  termsVersion?: string;
+  privacyVersion?: string;
+  terms_version?: string;
+  privacy_version?: string;
+  terms_accepted_at?: string;
+  privacy_accepted_at?: string;
 }
 
 export interface BankAccount {
@@ -140,6 +148,9 @@ export type ScreenId =
   | 'MONEY_REQUESTS'
   | 'HELP_SUPPORT'
   | 'PRIVACY'
+  | 'PRIVACY_SETTINGS'
+  | 'TERMS'
+  | 'PRIVACY_POLICY'
   | 'SHOPPING'
   | 'TRAVEL'
   | 'REWARDS'

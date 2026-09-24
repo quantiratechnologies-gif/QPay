@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import {
   QrCode,
   Landmark,
@@ -19,6 +19,8 @@ import {
   Sliders,
   Fingerprint,
   Users,
+  FileText,
+  Info,
 } from 'lucide-react';
 import { ListRow } from '../../ListRow';
 
@@ -291,7 +293,55 @@ export const ProfileMenuSections: React.FC<ProfileMenuSectionsProps> = ({
                 {language}
               </span>
             }
+            isLast={true}
             onClick={onOpenLanguageModal}
+          />
+        </div>
+      </div>
+
+      {/* Legal & Support Section */}
+      <div>
+        <div
+          style={{
+            fontSize: '11px',
+            fontWeight: '800',
+            color: '#9ca3af',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+            marginBottom: '8px',
+            marginInlineStart: '4px',
+          }}
+        >
+          {language === 'العربية' ? 'الوثائق القانونية والدعم' : 'Legal & Support'}
+        </div>
+        <div
+          style={{
+            backgroundColor: '#111726',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            borderRadius: '18px',
+            overflow: 'hidden',
+            padding: 0,
+            boxShadow: 'none',
+          }}
+        >
+          <ListRow
+            icon={<FileText size={18} color="#7FE87F" />}
+            label={language === 'العربية' ? 'الشروط والأحكام' : 'Terms and Conditions'}
+            onClick={() => onNavigate('TERMS')}
+          />
+          <ListRow
+            icon={<ShieldCheck size={18} color="#7FE87F" />}
+            label={language === 'العربية' ? 'سياسة الخصوصية' : 'Privacy Policy'}
+            onClick={() => onNavigate('PRIVACY_POLICY')}
+          />
+          <ListRow
+            icon={<Lock size={18} color="#7FE87F" />}
+            label={
+              language === 'العربية'
+                ? 'الخصوصية والتحكم في البيانات'
+                : 'Privacy & Data Controls'
+            }
+            onClick={() => onNavigate('PRIVACY_SETTINGS')}
           />
           <ListRow
             icon={<HelpCircle size={18} color="#7FE87F" />}
@@ -299,10 +349,14 @@ export const ProfileMenuSections: React.FC<ProfileMenuSectionsProps> = ({
             onClick={() => onNavigate('HELP_SUPPORT')}
           />
           <ListRow
-            icon={<Lock size={18} color="#7FE87F" />}
-            label={language === 'العربية' ? 'الخصوصية والشروط' : 'Privacy & Terms'}
+            icon={<Info size={18} color="#9CA3AF" />}
+            label={language === 'العربية' ? 'إصدار التطبيق' : 'App Version'}
+            rightElement={
+              <span style={{ fontSize: '12px', fontWeight: 700, color: '#9CA3AF' }}>
+                v1.0.0
+              </span>
+            }
             isLast={true}
-            onClick={() => onNavigate('PRIVACY')}
           />
         </div>
       </div>

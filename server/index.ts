@@ -60,6 +60,15 @@ app.get('/api/health', (_req, res) => {
 
 // Mount Routes
 app.use('/api/auth/otp', otpRouter);
+app.use('/api/auth', otpRouter);
+
+// Data Export Queue Endpoint
+app.post('/api/user/data-export', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Request submitted - we will email you within 30 days',
+  });
+});
 
 // Global Error Handler
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

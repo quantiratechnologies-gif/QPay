@@ -9,6 +9,10 @@ export interface UserSessionResult {
     upiId: string;
     email?: string;
     role: string;
+    terms_version?: string;
+    privacy_version?: string;
+    termsVersion?: string;
+    privacyVersion?: string;
   };
   session?: {
     access_token: string;
@@ -21,8 +25,12 @@ export interface UserSessionResult {
 export async function resolveOrProvisionUserSession(params: {
   phone: string;
   fullName?: string;
+  termsVersion?: string;
+  privacyVersion?: string;
+  ipAddress?: string;
+  userAgent?: string;
 }): Promise<UserSessionResult> {
-  const { phone, fullName = 'QPay User' } = params;
+  const { phone, fullName = 'QPay User', termsVersion, privacyVersion, ipAddress, userAgent } = params;
   const cleanPhone = phone.trim();
   const initials = fullName
     .split(' ')
@@ -40,6 +48,10 @@ export async function resolveOrProvisionUserSession(params: {
     upiId: `${cleanPhone.slice(-4)}@sarie`,
     email: `${cleanPhone.replace(/[^0-9]/g, '').slice(-6)}@qpay.sa`,
     role: 'customer',
+    terms_version: termsVersion,
+    privacy_version: privacyVersion,
+    termsVersion: termsVersion,
+    privacyVersion: privacyVersion,
   };
 
   const supabase = getSupabaseServer();
@@ -56,6 +68,8 @@ export async function resolveOrProvisionUserSession(params: {
   }
 
   try {
+    const nowIso = new Date().toISOString();
+
     // 1. Check if profile exists by mobile
     const { data: existingProfile, error: profileErr } = await supabase
       .from('profiles')
@@ -64,15 +78,58 @@ export async function resolveOrProvisionUserSession(params: {
       .maybeSingle();
 
     if (existingProfile && !profileErr) {
-      // Mark verified
+      const updateData: Record<string, any> = {
+        phone_verified: true,
+        phone_verified_at: nowIso,
+        updated_at: nowIso,
+      };
+
+      if (termsVersion) {
+        updateData.terms_accepted_at = nowIso;
+        updateData.terms_version = termsVersion;
+      }
+      if (privacyVersion) {
+        updateData.privacy_accepted_at = nowIso;
+        updateData.privacy_version = privacyVersion;
+      }
+      if (ipAddress) {
+        updateData.consent_ip = ipAddress;
+      }
+
       await supabase
         .from('profiles')
-        .update({
-          phone_verified: true,
-          phone_verified_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
+        .update(updateData)
         .eq('id', existingProfile.id);
+
+      // Append to consent_audit_log
+      if (termsVersion || privacyVersion) {
+        const auditRows = [];
+        if (termsVersion) {
+          auditRows.push({
+            profile_id: existingProfile.id,
+            document_type: 'TERMS',
+            version: termsVersion,
+            accepted_at: nowIso,
+            ip_address: ipAddress || 'unknown',
+            user_agent: userAgent || 'unknown',
+          });
+        }
+        if (privacyVersion) {
+          auditRows.push({
+            profile_id: existingProfile.id,
+            document_type: 'PRIVACY_POLICY',
+            version: privacyVersion,
+            accepted_at: nowIso,
+            ip_address: ipAddress || 'unknown',
+            user_agent: userAgent || 'unknown',
+          });
+        }
+        try {
+          await supabase.from('consent_audit_log').insert(auditRows);
+        } catch (err: any) {
+          console.warn('[ConsentAuditLog] Audit log insert warning:', err);
+        }
+      }
 
       return {
         user: {
@@ -83,6 +140,10 @@ export async function resolveOrProvisionUserSession(params: {
           upiId: existingProfile.upi_id || defaultUser.upiId,
           email: existingProfile.email || defaultUser.email,
           role: existingProfile.role || 'customer',
+          terms_version: termsVersion || existingProfile.terms_version,
+          privacy_version: privacyVersion || existingProfile.privacy_version,
+          termsVersion: termsVersion || existingProfile.terms_version,
+          privacyVersion: privacyVersion || existingProfile.privacy_version,
         },
         session: {
           access_token: `sb_session_${existingProfile.id}_${Date.now()}`,
@@ -93,23 +154,66 @@ export async function resolveOrProvisionUserSession(params: {
     }
 
     // 2. Provision new profile in Supabase
+    const insertData: Record<string, any> = {
+      mobile: cleanPhone,
+      full_name: fullName,
+      avatar_initials: initials,
+      upi_id: defaultUser.upiId,
+      email: defaultUser.email,
+      role: 'customer',
+      is_kyc_verified: false,
+      phone_verified: true,
+      phone_verified_at: nowIso,
+    };
+
+    if (termsVersion) {
+      insertData.terms_accepted_at = nowIso;
+      insertData.terms_version = termsVersion;
+    }
+    if (privacyVersion) {
+      insertData.privacy_accepted_at = nowIso;
+      insertData.privacy_version = privacyVersion;
+    }
+    if (ipAddress) {
+      insertData.consent_ip = ipAddress;
+    }
+
     const { data: newProfile, error: insertErr } = await supabase
       .from('profiles')
-      .insert({
-        mobile: cleanPhone,
-        full_name: fullName,
-        avatar_initials: initials,
-        upi_id: defaultUser.upiId,
-        email: defaultUser.email,
-        role: 'customer',
-        is_kyc_verified: false,
-        phone_verified: true,
-        phone_verified_at: new Date().toISOString(),
-      })
+      .insert(insertData)
       .select()
       .single();
 
     if (newProfile && !insertErr) {
+      if (termsVersion || privacyVersion) {
+        const auditRows = [];
+        if (termsVersion) {
+          auditRows.push({
+            profile_id: newProfile.id,
+            document_type: 'TERMS',
+            version: termsVersion,
+            accepted_at: nowIso,
+            ip_address: ipAddress || 'unknown',
+            user_agent: userAgent || 'unknown',
+          });
+        }
+        if (privacyVersion) {
+          auditRows.push({
+            profile_id: newProfile.id,
+            document_type: 'PRIVACY_POLICY',
+            version: privacyVersion,
+            accepted_at: nowIso,
+            ip_address: ipAddress || 'unknown',
+            user_agent: userAgent || 'unknown',
+          });
+        }
+        try {
+          await supabase.from('consent_audit_log').insert(auditRows);
+        } catch (err: any) {
+          console.warn('[ConsentAuditLog] Audit log insert warning:', err);
+        }
+      }
+
       return {
         user: {
           id: newProfile.id,
@@ -119,6 +223,10 @@ export async function resolveOrProvisionUserSession(params: {
           upiId: newProfile.upi_id,
           email: newProfile.email,
           role: newProfile.role,
+          terms_version: termsVersion,
+          privacy_version: privacyVersion,
+          termsVersion: termsVersion,
+          privacyVersion: privacyVersion,
         },
         session: {
           access_token: `sb_session_${newProfile.id}_${Date.now()}`,

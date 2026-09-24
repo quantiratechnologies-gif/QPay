@@ -32,7 +32,10 @@ import { NotificationsScreen } from './screens/NotificationsScreen';
 import { AllServicesScreen } from './screens/AllServicesScreen';
 import { MoneyRequestsScreen } from './screens/MoneyRequestsScreen';
 import { HelpSupportScreen } from './screens/HelpSupportScreen';
-import { PrivacyScreen } from './screens/PrivacyScreen';
+import { PrivacySettingsScreen } from './screens/PrivacySettingsScreen';
+import { TermsScreen } from './screens/TermsScreen';
+import { PrivacyPolicyScreen } from './screens/PrivacyPolicyScreen';
+import { ReconsentModal } from './components/features/legal/ReconsentModal';
 
 // Lifestyle Screens
 import { ShoppingScreen } from './screens/ShoppingScreen';
@@ -120,7 +123,12 @@ const AppContent: React.FC = () => {
       case 'HELP_SUPPORT':
         return <HelpSupportScreen />;
       case 'PRIVACY':
-        return <PrivacyScreen />;
+      case 'PRIVACY_SETTINGS':
+        return <PrivacySettingsScreen />;
+      case 'TERMS':
+        return <TermsScreen />;
+      case 'PRIVACY_POLICY':
+        return <PrivacyPolicyScreen />;
       case 'SHOPPING':
         return <ShoppingScreen />;
       case 'TRAVEL':
@@ -143,7 +151,9 @@ const AppContent: React.FC = () => {
     currentScreen !== 'PERMISSIONS' &&
     currentScreen !== 'ONBOARDING_KYC' &&
     currentScreen !== 'ONBOARDING_BANK' &&
-    currentScreen !== 'PAYMENT_SUCCESS';
+    currentScreen !== 'PAYMENT_SUCCESS' &&
+    currentScreen !== 'TERMS' &&
+    currentScreen !== 'PRIVACY_POLICY';
 
   return (
     <div className={`app-viewport ${isRtl ? 'rtl' : ''}`}>
@@ -169,6 +179,7 @@ const AppContent: React.FC = () => {
       <AddBankModal />
       <EditProfileModal />
       <KycModal />
+      <ReconsentModal />
     </div>
   );
 };

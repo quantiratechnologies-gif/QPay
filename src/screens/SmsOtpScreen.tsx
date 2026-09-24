@@ -5,14 +5,20 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { useApp } from '../state/AppContext';
 import { setSessionFromServer } from '../services/supabaseClient';
 import {
-  QaOtpBanner,
   OtpDigitsInput,
   OtpResendSection,
 } from '../components/features/auth';
 
 export const SmsOtpScreen: React.FC = () => {
   const { navigateTo, screenParams, t, isRtl, language, updateUser } = useApp();
-  const mobile = screenParams.mobile || '+966501234567';
+  const mobile = screenParams.mobile || '';
+
+  useEffect(() => {
+    if (!screenParams.mobile) {
+      navigateTo('MOBILE_NUMBER');
+    }
+  }, [screenParams.mobile, navigateTo]);
+
   const initialCooldown =
     typeof screenParams.resendCooldown === 'number' ? screenParams.resendCooldown : 60;
 
@@ -94,6 +100,8 @@ export const SmsOtpScreen: React.FC = () => {
           phone: mobile,
           otp: enteredCode,
           fullName: screenParams.name,
+          termsVersion: screenParams.termsVersion,
+          privacyVersion: screenParams.privacyVersion,
         }),
       });
 
@@ -197,14 +205,6 @@ export const SmsOtpScreen: React.FC = () => {
     }
   };
 
-  // Master Test OTP autofill helper for sandbox development
-  const handleQuickFill = () => {
-    const targetCode = '582904';
-    const digits = targetCode.split('');
-    setOtp(digits);
-    setErrorMsg('');
-    inputRefs[5].current?.focus();
-  };
 
   return (
     <div
@@ -223,7 +223,6 @@ export const SmsOtpScreen: React.FC = () => {
         userSelect: 'none',
       }}
     >
-      <QaOtpBanner isRtl={isRtl} language={language} onQuickFill={handleQuickFill} />
 
       {/* Top Center: App Brand Logo */}
       <div

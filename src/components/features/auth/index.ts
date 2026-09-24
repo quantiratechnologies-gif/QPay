@@ -1,4 +1,3 @@
-﻿export { MobileLoginForm } from './MobileLoginForm';
-export { QaOtpBanner } from './QaOtpBanner';
+export { MobileLoginForm } from './MobileLoginForm';
 export { OtpDigitsInput } from './OtpDigitsInput';
 export { OtpResendSection } from './OtpResendSection';

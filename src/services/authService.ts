@@ -10,7 +10,4 @@ export const authService = {
       email: 'fahad.alharbi@email.sa',
     };
   },
-  async verifyPin(pin: string): Promise<boolean> {
-    return pin.length === 4;
-  },
 };

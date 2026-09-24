@@ -3,33 +3,34 @@ import type { Transaction, User } from '../types';
 
 const globalProc = typeof globalThis !== 'undefined' ? (globalThis as any).process : undefined;
 const envObj = (typeof import.meta !== 'undefined' && import.meta && import.meta.env) ? import.meta.env : (globalProc && globalProc.env ? globalProc.env : {});
-const SUPABASE_URL = envObj.VITE_SUPABASE_URL || 'https://sb-qpay-saudi.supabase.co';
-const SUPABASE_ANON_KEY = envObj.VITE_SUPABASE_ANON_KEY || 'sb_publishable_fiRLd5ddXPUH_onp8AH86w_JQoVgAmH';
+const SUPABASE_URL = envObj.VITE_SUPABASE_URL || '';
+const SUPABASE_ANON_KEY = envObj.VITE_SUPABASE_ANON_KEY || '';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 export function getSupabase(): SupabaseClient | null {
   if (supabaseInstance) return supabaseInstance;
-  try {
-    const isPlaceholder = !SUPABASE_URL || SUPABASE_URL.includes('sb-qpay-saudi.supabase.co');
-    if (!isPlaceholder && SUPABASE_URL && SUPABASE_ANON_KEY) {
-      supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-        auth: {
-          persistSession: true,
-          autoRefreshToken: true,
-        },
-        realtime: {
-          params: {
-            eventsPerSecond: 10,
-          },
-        },
-      });
-      return supabaseInstance;
-    }
-  } catch (err) {
-    console.warn('[Supabase] Initialization warning:', err);
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    console.error('[Supabase Config Error] Missing VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY');
+    return null;
   }
-  return null;
+  try {
+    supabaseInstance = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10,
+        },
+      },
+    });
+    return supabaseInstance;
+  } catch (err) {
+    console.error('[Supabase Config Error] Initialization failed:', err);
+    return null;
+  }
 }
 
 // Apply Server-Issued Session and Cache User

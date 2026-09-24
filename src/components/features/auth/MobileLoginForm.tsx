@@ -12,6 +12,10 @@ interface MobileLoginFormProps {
   isRtl: boolean;
   language: string;
   t: (key: string, fallback?: string) => string;
+  consentAccepted: boolean;
+  onConsentChange: (accepted: boolean) => void;
+  onNavigateTerms: () => void;
+  onNavigatePrivacy: () => void;
   onFullNameChange: (val: string) => void;
   onMobileNumberChange: (val: string) => void;
   onSelectCountry: (country: CountryItem) => void;
@@ -27,6 +31,10 @@ export const MobileLoginForm: React.FC<MobileLoginFormProps> = ({
   isRtl,
   language,
   t,
+  consentAccepted,
+  onConsentChange,
+  onNavigateTerms,
+  onNavigatePrivacy,
   onFullNameChange,
   onMobileNumberChange,
   onSelectCountry,
@@ -213,12 +221,103 @@ export const MobileLoginForm: React.FC<MobileLoginFormProps> = ({
           </div>
         )}
 
+        {/* Required Terms & Privacy Consent Checkbox */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '4px' }}>
+          <input
+            id="terms-consent-checkbox"
+            type="checkbox"
+            checked={consentAccepted}
+            onChange={(e) => onConsentChange(e.target.checked)}
+            required
+            style={{
+              width: '18px',
+              height: '18px',
+              accentColor: '#7FE87F',
+              cursor: 'pointer',
+              marginTop: '2px',
+              flexShrink: 0,
+            }}
+          />
+          <label
+            htmlFor="terms-consent-checkbox"
+            style={{
+              fontSize: '12px',
+              color: '#A2A2BA',
+              lineHeight: '1.5',
+              cursor: 'pointer',
+            }}
+          >
+            {language === 'العربية' ? (
+              <>
+                أوافق على{' '}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigateTerms();
+                  }}
+                  style={{ color: '#7FE87F', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  الشروط والأحكام
+                </span>{' '}
+                و{' '}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigatePrivacy();
+                  }}
+                  style={{ color: '#7FE87F', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  سياسة الخصوصية
+                </span>
+              </>
+            ) : (
+              <>
+                I agree to the{' '}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigateTerms();
+                  }}
+                  style={{ color: '#7FE87F', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  Terms and Conditions
+                </span>{' '}
+                and{' '}
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigatePrivacy();
+                  }}
+                  style={{ color: '#7FE87F', textDecoration: 'underline', fontWeight: 700 }}
+                >
+                  Privacy Policy
+                </span>
+              </>
+            )}
+          </label>
+        </div>
+
         {/* Primary Submit Button */}
         <div style={{ marginTop: '6px' }}>
           <PrimaryButton
             type="submit"
             disabled={
-              mobileNumber.replace(/\s/g, '').trim().length < 9 || fullName.trim().length === 0 || isLoading
+              mobileNumber.replace(/\s/g, '').trim().length < 9 ||
+              fullName.trim().length === 0 ||
+              !consentAccepted ||
+              isLoading
             }
           >
             {isLoading ? (

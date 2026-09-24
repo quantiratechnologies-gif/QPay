@@ -18,6 +18,8 @@ interface ActiveVerification {
   maxAttempts: number;
   expiresAt: number;
   createdAt: number;
+  termsVersion?: string;
+  privacyVersion?: string;
 }
 const localVerifications = new Map<string, ActiveVerification>();
 
@@ -26,12 +28,16 @@ const SendOtpSchema = z.object({
   phone: z.string().min(6).max(20),
   fullName: z.string().optional(),
   defaultCountry: z.string().optional(),
+  termsVersion: z.string().optional(),
+  privacyVersion: z.string().optional(),
 });
 
 const VerifyOtpSchema = z.object({
   phone: z.string().min(6).max(20),
   otp: z.string().regex(/^\d{4,6}$/, 'OTP must be 4 to 6 numeric digits'),
   fullName: z.string().optional(),
+  termsVersion: z.string().optional(),
+  privacyVersion: z.string().optional(),
 });
 
 const ResendOtpSchema = z.object({
@@ -141,6 +147,8 @@ otpRouter.post('/send', async (req: Request, res: Response): Promise<void> => {
       maxAttempts: 5,
       expiresAt: Date.now() + expiryMinutes * 60 * 1000,
       createdAt: Date.now(),
+      termsVersion: parsed.data.termsVersion,
+      privacyVersion: parsed.data.privacyVersion,
     });
 
     // Audit event log
@@ -315,10 +323,15 @@ otpRouter.post('/verify', async (req: Request, res: Response): Promise<void> => 
       .eq('id', dbRecordId);
   }
 
-  // Provision user profile and authenticated session
+  // Provision user profile and authenticated session with consent audit
+  const userAgent = (req.headers['user-agent'] as string) || 'unknown';
   const sessionResult = await resolveOrProvisionUserSession({
     phone: e164,
     fullName: fullName || 'QPay User',
+    termsVersion: parsed.data.termsVersion || currentRecord.termsVersion,
+    privacyVersion: parsed.data.privacyVersion || currentRecord.privacyVersion,
+    ipAddress: ip,
+    userAgent: userAgent,
   });
 
   await logOtpAuditEvent({
@@ -334,6 +347,28 @@ otpRouter.post('/verify', async (req: Request, res: Response): Promise<void> => 
     user: sessionResult.user,
     session: sessionResult.session,
   });
+});
+
+/**
+ * POST /api/auth/otp/consent
+ * Re-consent endpoint on version bump
+ */
+otpRouter.post('/consent', async (req: Request, res: Response): Promise<void> => {
+  const { mobile, termsVersion, privacyVersion } = req.body;
+  const ip = getClientIp(req);
+  const userAgent = (req.headers['user-agent'] as string) || 'unknown';
+
+  if (mobile) {
+    await resolveOrProvisionUserSession({
+      phone: mobile,
+      termsVersion,
+      privacyVersion,
+      ipAddress: ip,
+      userAgent,
+    });
+  }
+
+  res.status(200).json({ success: true, message: 'Consent recorded successfully' });
 });
 
 /**

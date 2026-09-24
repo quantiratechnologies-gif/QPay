@@ -3,11 +3,13 @@ import { AlphPayLogo } from '../components/AlphPayLogo';
 import { COUNTRIES, type CountryItem } from '../components/CountryCodePicker';
 import { MobileLoginForm } from '../components/features/auth/MobileLoginForm';
 import { useApp } from '../state/AppContext';
+import { TERMS_VERSION, PRIVACY_VERSION } from '../config/legal';
 export const MobileNumberScreen: React.FC = () => {
   const { navigateTo, updateUser, t, isRtl, language } = useApp();
   const [fullName, setFullName] = useState<string>('');
   const [selectedCountry, setSelectedCountry] = useState<CountryItem>(COUNTRIES[0]); // Default Saudi Arabia
   const [mobileNumber, setMobileNumber] = useState<string>('');
+  const [consentAccepted, setConsentAccepted] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -41,6 +43,8 @@ export const MobileNumberScreen: React.FC = () => {
           phone: canonicalE164,
           fullName: fullName.trim(),
           defaultCountry: selectedCountry.code,
+          termsVersion: TERMS_VERSION,
+          privacyVersion: PRIVACY_VERSION,
         }),
       });
 
@@ -83,18 +87,16 @@ export const MobileNumberScreen: React.FC = () => {
         callingCode: selectedCountry.dialCode,
         name: fullName.trim(),
         resendCooldown: data.resendCooldown || 60,
+        termsVersion: TERMS_VERSION,
+        privacyVersion: PRIVACY_VERSION,
       });
     } catch (err: any) {
       console.error('[Send OTP Error]', err);
-      // Fallback: If API server isn't reachable, still allow transition in dev
-      updateUser({ name: fullName.trim(), mobile: canonicalE164 });
-      navigateTo('SMS_OTP', {
-        mobile: canonicalE164,
-        nationalNumber: cleanDigits,
-        callingCode: selectedCountry.dialCode,
-        name: fullName.trim(),
-        resendCooldown: 60,
-      });
+      setErrorMessage(
+        language === 'العربية'
+          ? 'تعذر الوصول إلى خدمة التحقق'
+          : 'Unable to reach verification service'
+      );
     } finally {
       setIsLoading(false);
     }
@@ -141,6 +143,10 @@ export const MobileNumberScreen: React.FC = () => {
         isRtl={isRtl}
         language={language}
         t={t}
+        consentAccepted={consentAccepted}
+        onConsentChange={setConsentAccepted}
+        onNavigateTerms={() => navigateTo('TERMS')}
+        onNavigatePrivacy={() => navigateTo('PRIVACY_POLICY')}
         onFullNameChange={setFullName}
         onMobileNumberChange={(val: string) => {
           setErrorMessage('');
